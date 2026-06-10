@@ -15,7 +15,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { Box, Typography } from "@mui/material";
-import { Dashboard, PeopleAlt, Quiz, Settings, Logout } from "@mui/icons-material";
+import { Dashboard, PeopleAlt, Quiz, Settings, Logout, SportsEsports } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import Header from "./Header/Header";
 import { clearAdminSession } from "../api";
@@ -93,6 +93,7 @@ const Drawer = styled(MuiDrawer, {
 const menuItems = [
   { text: "Dashboard", icon: <Dashboard />, path: "/dashboard" },
   { text: "Questions", icon: <Quiz />, path: "/questions" },
+  { text: "Matches", icon: <SportsEsports />, path: "/matches" },
   { text: "Users", icon: <PeopleAlt />, path: "/users" },
   { text: "Settings", icon: <Settings />, path: "/settings" },
 ];

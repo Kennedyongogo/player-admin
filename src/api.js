@@ -111,3 +111,18 @@ export const updateQuestion = (id, body) =>
 
 export const deactivateQuestion = (id) =>
   adminRequest(`/api/admin/questions/${id}`, { method: "DELETE" });
+
+export const fetchMatches = ({ page = 1, limit = 20, search = "", status = "all" } = {}) => {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (status && status !== "all") params.set("status", status);
+  const q = String(search || "").trim();
+  if (q) params.set("search", q);
+  return adminRequest(`/api/admin/matches?${params}`);
+};
+
+export const fetchPlatformConfig = () => adminRequest("/api/admin/platform-config");
+
+export const updatePlatformConfig = (body) =>
+  adminRequest("/api/admin/platform-config", { method: "PATCH", body: JSON.stringify(body) });

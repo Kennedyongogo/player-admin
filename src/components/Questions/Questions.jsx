@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Chip,
   CircularProgress,
   Alert,
@@ -43,6 +42,7 @@ import {
   updateQuestion,
   deactivateQuestion,
 } from "../../api";
+import ResponsiveTablePagination from "../ResponsiveTablePagination";
 
 const swalTheme = {
   confirmButtonColor: "#8B5CF6",
@@ -546,7 +546,7 @@ export default function Questions() {
           </TableContainer>
         )}
         {!loading && (
-          <TablePagination
+          <ResponsiveTablePagination
             component="div"
             count={pagination.total}
             page={page}

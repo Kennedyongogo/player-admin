@@ -9,7 +9,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
   Chip,
   CircularProgress,
   Alert,
@@ -36,6 +35,7 @@ import {
   updateUser,
   deleteUser,
 } from "../../api";
+import ResponsiveTablePagination from "../ResponsiveTablePagination";
 
 const swalTheme = {
   confirmButtonColor: "#8B5CF6",
@@ -557,7 +557,7 @@ export default function Users() {
           </TableContainer>
         )}
         {!loading && (
-          <TablePagination
+          <ResponsiveTablePagination
             component="div"
             count={pagination.total}
             page={page}
