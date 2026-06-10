@@ -14,13 +14,14 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { Dashboard, PeopleAlt, Quiz, Settings, Logout } from "@mui/icons-material";
 import { useEffect, useState } from "react";
 import Header from "./Header/Header";
 import { clearAdminSession } from "../api";
 
 const drawerWidth = 260;
+const drawerCollapsedWidth = 92;
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -32,15 +33,12 @@ const openedMixin = (theme) => ({
 });
 
 const closedMixin = (theme) => ({
+  width: drawerCollapsedWidth,
   transition: theme.transitions.create("width", {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
   overflowX: "hidden",
-  width: `calc(${theme.spacing(7)} + 1px)`,
-  [theme.breakpoints.up("sm")]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
-  },
 });
 
 const DrawerHeader = styled("div")(({ theme }) => ({
@@ -69,12 +67,16 @@ const AppBar = styled(MuiAppBar, {
       duration: theme.transitions.duration.enteringScreen,
     }),
   }),
+  ...(!open && {
+    marginLeft: drawerCollapsedWidth,
+    width: `calc(100% - ${drawerCollapsedWidth}px)`,
+  }),
 }));
 
 const Drawer = styled(MuiDrawer, {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
-  width: drawerWidth,
+  width: open ? drawerWidth : drawerCollapsedWidth,
   flexShrink: 0,
   whiteSpace: "nowrap",
   boxSizing: "border-box",
@@ -94,6 +96,68 @@ const menuItems = [
   { text: "Users", icon: <PeopleAlt />, path: "/users" },
   { text: "Settings", icon: <Settings />, path: "/settings" },
 ];
+
+function NavItem({ item, selected, open, onClick }) {
+  return (
+    <ListItem disablePadding sx={{ mb: 0.5 }}>
+      <ListItemButton
+        onClick={onClick}
+        selected={selected}
+        sx={{
+          borderRadius: 2,
+          flexDirection: open ? "row" : "column",
+          justifyContent: "center",
+          alignItems: "center",
+          py: open ? 1 : 1.25,
+          px: open ? 2 : 0.75,
+          minHeight: open ? 48 : 76,
+          gap: open ? 0 : 0.5,
+          "&.Mui-selected": {
+            bgcolor: "rgba(139, 92, 246, 0.15)",
+            "&:hover": { bgcolor: "rgba(139, 92, 246, 0.22)" },
+          },
+        }}
+      >
+        <ListItemIcon
+          sx={{
+            minWidth: open ? 40 : "auto",
+            justifyContent: "center",
+            m: 0,
+          }}
+        >
+          {cloneElement(item.icon, {
+            sx: { color: selected ? "primary.main" : "text.secondary", fontSize: open ? 24 : 22 },
+          })}
+        </ListItemIcon>
+        {open ? (
+          <ListItemText
+            primary={item.text}
+            primaryTypographyProps={{
+              fontWeight: selected ? 700 : 500,
+              fontSize: "0.9rem",
+            }}
+          />
+        ) : (
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: "0.65rem",
+              fontWeight: selected ? 700 : 500,
+              color: selected ? "primary.main" : "text.secondary",
+              textAlign: "center",
+              lineHeight: 1.2,
+              whiteSpace: "normal",
+              wordBreak: "break-word",
+              px: 0.25,
+            }}
+          >
+            {item.text}
+          </Typography>
+        )}
+      </ListItemButton>
+    </ListItem>
+  );
+}
 
 export default function Navbar({ user, setUser }) {
   const navigate = useNavigate();
@@ -122,55 +186,35 @@ export default function Navbar({ user, setUser }) {
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
-        <DrawerHeader>
-          <IconButton onClick={() => setOpen(false)}>
-            {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+        <DrawerHeader sx={{ justifyContent: open ? "flex-end" : "center", px: open ? 1 : 0 }}>
+          <IconButton onClick={() => setOpen((v) => !v)} size="small">
+            {open ? (
+              theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />
+            ) : (
+              theme.direction === "rtl" ? <ChevronLeftIcon /> : <ChevronRightIcon />
+            )}
           </IconButton>
         </DrawerHeader>
         <Divider />
-        <List sx={{ px: 1, pt: 1 }}>
-          {menuItems.map((item) => {
-            const selected = location.pathname === item.path;
-            return (
-              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
-                <ListItemButton
-                  onClick={() => navigate(item.path)}
-                  selected={selected}
-                  sx={{
-                    borderRadius: 2,
-                    "&.Mui-selected": {
-                      bgcolor: "rgba(139, 92, 246, 0.15)",
-                      "&:hover": { bgcolor: "rgba(139, 92, 246, 0.22)" },
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40 }}>
-                    {cloneElement(item.icon, {
-                      sx: { color: selected ? "primary.main" : "text.secondary" },
-                    })}
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={item.text}
-                    primaryTypographyProps={{
-                      fontWeight: selected ? 700 : 500,
-                      fontSize: "0.9rem",
-                    }}
-                  />
-                </ListItemButton>
-              </ListItem>
-            );
-          })}
+        <List sx={{ px: 0.75, pt: 1 }}>
+          {menuItems.map((item) => (
+            <NavItem
+              key={item.text}
+              item={item}
+              selected={location.pathname === item.path}
+              open={open}
+              onClick={() => navigate(item.path)}
+            />
+          ))}
         </List>
         <Divider sx={{ mt: "auto" }} />
-        <List sx={{ px: 1, pb: 1 }}>
-          <ListItem disablePadding>
-            <ListItemButton onClick={logout} sx={{ borderRadius: 2 }}>
-              <ListItemIcon sx={{ minWidth: 40 }}>
-                <Logout sx={{ color: "text.secondary" }} />
-              </ListItemIcon>
-              <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: "0.9rem" }} />
-            </ListItemButton>
-          </ListItem>
+        <List sx={{ px: 0.75, pb: 1 }}>
+          <NavItem
+            item={{ text: "Logout", icon: <Logout /> }}
+            selected={false}
+            open={open}
+            onClick={logout}
+          />
         </List>
       </Drawer>
     </Box>
