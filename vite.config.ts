@@ -35,11 +35,10 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       manifest: {
-        name: "Vihiga LIMS eDAMS Admin Portal",
-        short_name: "Vihiga LIMS Admin",
-        description:
-          "Vihiga County - Electronic Development Application Management System Admin Portal",
-        theme_color: "#ffffff",
+        name: "ChapaQuiz Admin",
+        short_name: "CQ Admin",
+        description: "ChapaQuiz admin — questions, matches, wallet & withdrawals",
+        theme_color: "#050508",
         icons: [
           {
             src: "favicon-16x16.png",

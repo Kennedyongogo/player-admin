@@ -1,1040 +1,514 @@
-// import "../Styles/login.scss";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Box,
   Typography,
-  Button,
   TextField,
-  Paper,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Card,
-  CardContent,
-  Snackbar,
-  Alert,
-  Grid,
-  Container,
-  Stack,
-  Divider,
-  Fade,
-  Slide,
-  Zoom,
-  CircularProgress,
+  Button,
   InputAdornment,
   IconButton,
+  Alert,
+  CircularProgress,
+  Stack,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import {
   Visibility,
   VisibilityOff,
-  Email,
+  Phone,
   Lock,
-  Login,
-  Security,
-  Shield,
-  VerifiedUser,
   AdminPanelSettings,
+  Shield,
+  Quiz,
+  SportsEsports,
+  AccountBalanceWallet,
+  MonitorHeart,
+  VerifiedUser,
 } from "@mui/icons-material";
-import Swal from "sweetalert2";
+import { adminLogin, saveAdminSession } from "../api";
 
-const images = [
-  "/tuvibe-1.jpg",
-  "/tuvibe-2.jpg",
-  "/tuvibe-3.jpg",
-  "/tuvibe-4.jpg",
+const ADMIN_TOOLS = [
+  { icon: Quiz, text: "Question bank", sub: "Add, edit & deactivate MCQs" },
+  { icon: SportsEsports, text: "Live matches", sub: "Monitor queues & active games" },
+  { icon: AccountBalanceWallet, text: "Wallet & M-Pesa", sub: "Deposits, withdrawals, payouts" },
+  { icon: MonitorHeart, text: "System health", sub: "Players, pools & performance" },
 ];
 
-export default function LoginPage(props) {
-  const theme = useTheme();
-  const rfEmail = useRef();
-  const rsEmail = useRef();
-  const rfPassword = useRef();
-  const code = useRef();
-  const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [body, updateBody] = useState({
-    email: null,
-  });
+const FLOATING_ICONS = ["⚙", "📊", "🛡", "✓", "Q", "₿"];
 
-  const [openResetDialog, setOpenResetDialog] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [severity, setSeverity] = useState("error");
-  const navigate = useNavigate();
+function normalizePhone(input) {
+  const stripped = String(input || "").trim().replace(/[\s-]+/g, "");
+  if (!stripped) return "";
+  if (stripped.startsWith("+")) return stripped;
+  if (stripped.startsWith("0")) return `+254${stripped.slice(1)}`;
+  if (stripped.startsWith("254")) return `+${stripped}`;
+  if (/^\d{9}$/.test(stripped)) return `+254${stripped}`;
+  return stripped;
+}
 
-  const login = async (e) => {
-    if (e) e.preventDefault();
-
-    let d = body;
-    d.email = rfEmail.current.value.toLowerCase().trim();
-    d.password = rfPassword.current.value;
-    updateBody(d);
-
-    if (!validateEmail(body.email)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Email",
-        text: "Please enter a valid email address",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (!validatePassword(body.password)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Password",
-        text: "Password must be at least 6 characters",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (validateEmail(body.email) && validatePassword(body.password)) {
-      setLoading(true);
-      Swal.fire({
-        title: "Signing in...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      try {
-        const response = await fetch("/api/admin-users/login", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          Swal.fire({
-            icon: "error",
-            title: "Login Failed",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        } else {
-          // Check if login was successful
-          if (data.success) {
-            Swal.fire({
-              icon: "success",
-              title: "Success!",
-              text: data.message,
-              timer: 1500,
-              showConfirmButton: false,
-            });
-            localStorage.setItem("token", data.data.token);
-            localStorage.setItem("userRole", data.data.admin.role);
-            localStorage.setItem("user", JSON.stringify(data.data.admin));
-            setTimeout(() => {
-              navigate("/analytics");
-            }, 1500);
-          } else {
-            Swal.fire({
-              icon: "error",
-              title: "Login Failed",
-              text: data.message,
-              confirmButtonColor: theme.palette.primary.main,
-            });
-          }
-        }
-      } catch (err) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Login failed. Please try again.",
-          confirmButtonColor: theme.palette.primary.main,
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  const reset = async () => {
-    let d = { Email: rsEmail.current.value.toLowerCase().trim() };
-
-    if (!validateEmail(d.Email)) {
-      Swal.fire({
-        icon: "error",
-        title: "Invalid Email",
-        text: "Please enter a valid email address",
-        confirmButtonColor: theme.palette.primary.main,
-      });
-      return;
-    }
-
-    if (validateEmail(d.Email)) {
-      setResetLoading(true);
-      Swal.fire({
-        title: "Processing...",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      try {
-        const response = await fetch("/api/auth/forgot", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(d),
-        });
-        const data = await response.json();
-
-        if (response.ok) {
-          setOpenResetDialog(false);
-          Swal.fire({
-            icon: "success",
-            title: "Success",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: data.message,
-            confirmButtonColor: theme.palette.primary.main,
-          });
-        }
-      } catch (err) {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Something went wrong. Please try again.",
-          confirmButtonColor: theme.palette.primary.main,
-        });
-      } finally {
-        setResetLoading(false);
-      }
-    }
-  };
-
-  const validateEmail = (email) => {
-    return String(email)
-      .toLowerCase()
-      .match(
-        /^(([^<>()[\]/.,;:\s@"]+(\.[^<>()[\]/.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-      );
-  };
-
-  const validatePassword = (password) => {
-    return password.length >= 6;
-  };
-
-  useEffect(() => {
-    // Preload images
-    images.forEach((imageSrc) => {
-      const img = new Image();
-      img.src = imageSrc;
-    });
-
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
+function AdminBackground() {
   return (
-    <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      minHeight="100vh"
-      position="relative"
-      sx={{
-        overflow: "hidden",
-        background:
-          "linear-gradient(135deg, #ffffff 0%, #f5f5f5 50%, #fafafa 100%)",
-      }}
-    >
-      {images.map((image, index) => (
+    <Box sx={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          background: `
+            radial-gradient(ellipse 75% 55% at 15% 15%, rgba(139,92,246,0.22) 0%, transparent 55%),
+            radial-gradient(ellipse 65% 45% at 90% 75%, rgba(245,197,24,0.1) 0%, transparent 50%),
+            radial-gradient(ellipse 45% 35% at 55% 45%, rgba(99,102,241,0.12) 0%, transparent 45%),
+            linear-gradient(165deg, #050508 0%, #0c0a14 45%, #050508 100%)
+          `,
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.3,
+          backgroundImage: `
+            linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px)
+          `,
+          backgroundSize: { xs: "32px 32px", md: "48px 48px" },
+          maskImage: "radial-gradient(ellipse 90% 80% at 50% 45%, black 15%, transparent 78%)",
+        }}
+      />
+      {FLOATING_ICONS.map((label, i) => (
         <Box
-          key={index}
-          component="img"
-          src={image}
-          alt={`Background ${index + 1}`}
+          key={label}
           sx={{
             position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            opacity: currentImageIndex === index ? 1 : 0,
-            transition: "opacity 1.5s ease-in-out",
-            zIndex: 0,
+            width: { xs: 34, md: 48 },
+            height: { xs: 34, md: 48 },
+            borderRadius: "12px",
+            display: { xs: i > 3 ? "none" : "flex", sm: "flex" },
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: { xs: "0.9rem", md: "1.1rem" },
+            color: "rgba(167,139,250,0.2)",
+            border: "1px solid rgba(139,92,246,0.12)",
+            bgcolor: "rgba(139,92,246,0.04)",
+            top: `${10 + (i * 15) % 58}%`,
+            left: `${8 + (i * 19) % 82}%`,
+            animation: `${i % 2 === 0 ? "float" : "float-reverse"} ${4.5 + i * 0.6}s ease-in-out infinite`,
+            animationDelay: `${i * 0.35}s`,
           }}
-        />
+        >
+          {label}
+        </Box>
       ))}
-
-      {/* Animated geometric shapes for visual interest */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: "10%",
-          left: "5%",
-          width: 100,
-          height: 100,
-          borderRadius: "50%",
-          background:
-            "linear-gradient(45deg, rgba(212,175,55,0.15), rgba(244,208,63,0.1))",
-          animation: "float 6s ease-in-out infinite",
-          "@keyframes float": {
-            "0%, 100%": { transform: "translateY(0px) rotate(0deg)" },
-            "50%": { transform: "translateY(-20px) rotate(180deg)" },
-          },
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: "15%",
-          right: "8%",
-          width: 80,
-          height: 80,
-          borderRadius: "20px",
-          background:
-            "linear-gradient(45deg, rgba(212,175,55,0.12), rgba(244,208,63,0.08))",
-          animation: "pulse 4s ease-in-out infinite",
-          "@keyframes pulse": {
-            "0%, 100%": { transform: "scale(1)" },
-            "50%": { transform: "scale(1.1)" },
-          },
-        }}
-      />
-
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Container
-          maxWidth="lg"
-          sx={{ px: { xs: 2, sm: 3, md: 4 }, position: "relative", zIndex: 1 }}
-        >
-          <Grid
-            container
-            spacing={{ xs: 2, sm: 3, md: 4 }}
-            alignItems="center"
-            justifyContent="center"
-          >
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Fade in timeout={1000}>
-                <Stack
-                  spacing={4}
-                  alignItems={{ xs: "center", md: "flex-start" }}
-                >
-                  <Slide direction="up" in timeout={1200}>
-                    <Stack
-                      spacing={4}
-                      sx={{ textAlign: { xs: "center", md: "left" } }}
-                    >
-                      {/* Enhanced title with subtitle */}
-                      <Stack spacing={2}>
-                        <Typography
-                          variant="h1"
-                          sx={{
-                            fontWeight: 900,
-                            fontSize: {
-                              xs: "2.7rem",
-                              sm: "3.3rem",
-                              md: "4.2rem",
-                              lg: "4.8rem",
-                              xl: "5.5rem",
-                            },
-                            textAlign: { xs: "center", md: "left" },
-                            letterSpacing: {
-                              xs: "1px",
-                              sm: "1.5px",
-                              md: "2px",
-                            },
-                            fontFamily:
-                              '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-                            background: `linear-gradient(135deg, 
-                              #FFD700 0%, 
-                              #d4af37 30%,
-                              #f4d03f 60%, 
-                              #FFD700 100%)`,
-                            backgroundClip: "text",
-                            WebkitBackgroundClip: "text",
-                            WebkitTextFillColor: "transparent",
-                            textShadow:
-                              "0 4px 20px rgba(255, 215, 0, 0.4), 0 2px 10px rgba(212, 175, 55, 0.3), 0 0 30px rgba(255, 215, 0, 0.2)",
-                            lineHeight: { xs: 1.1, sm: 1.05, md: 1 },
-                            mb: 1,
-                            textTransform: "uppercase",
-                            filter:
-                              "drop-shadow(0 0 15px rgba(255, 215, 0, 0.5))",
-                            WebkitTextStroke: "0.5px rgba(255, 215, 0, 0.6)",
-                            transition: "all 0.3s ease",
-                            "&:hover": {
-                              transform: "scale(1.02)",
-                              filter:
-                                "drop-shadow(0 0 20px rgba(255, 215, 0, 0.7))",
-                            },
-                          }}
-                        >
-                          Tuvibe
-                        </Typography>
-                      </Stack>
-                    </Stack>
-                  </Slide>
-                </Stack>
-              </Fade>
-            </Grid>
-
-            <Grid
-              size={{ xs: 12, md: 6 }}
-              sx={{ display: "flex", justifyContent: "center" }}
-            >
-              <Slide direction="left" in timeout={1500}>
-                <Card
-                  elevation={0}
-                  sx={{
-                    p: { xs: 2, sm: 3, md: 4 },
-                    maxWidth: { xs: "100%", sm: 450, md: 480 },
-                    width: "100%",
-                    borderRadius: { xs: 4, sm: 6 },
-                    background: "rgba(255, 255, 255, 0.95)",
-                    backdropFilter: "blur(20px)",
-                    border: "1px solid rgba(212, 175, 55, 0.2)",
-                    boxShadow: `
-                      0 8px 32px rgba(212, 175, 55, 0.15),
-                      0 2px 8px rgba(0, 0, 0, 0.08),
-                      inset 0 1px 0 rgba(255, 255, 255, 0.9)
-                    `,
-                    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                    position: "relative",
-                    overflow: "hidden",
-                    mx: { xs: 1, sm: 0 },
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      height: "2px",
-                      background:
-                        "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)",
-                      opacity: 0,
-                      transition: "opacity 0.3s ease",
-                    },
-                    "&:hover": {
-                      transform: {
-                        xs: "translateY(-2px)",
-                        sm: "translateY(-4px)",
-                        md: "translateY(-8px) scale(1.02)",
-                      },
-                      boxShadow: `
-                        0 12px 48px rgba(212, 175, 55, 0.25),
-                        0 4px 16px rgba(0, 0, 0, 0.1),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.95)
-                      `,
-                      border: "1px solid rgba(212, 175, 55, 0.4)",
-                      "&::before": {
-                        opacity: 1,
-                      },
-                    },
-                  }}
-                >
-                  <form onSubmit={login}>
-                    {/* Enhanced header with admin icon */}
-                    <Stack
-                      direction="row"
-                      alignItems="center"
-                      justifyContent="center"
-                      spacing={{ xs: 1.5, sm: 2 }}
-                      sx={{ mb: { xs: 3, sm: 4 } }}
-                    >
-                      <AdminPanelSettings
-                        sx={{
-                          color: "#d4af37",
-                          fontSize: { xs: 24, sm: 28, md: 32 },
-                          filter: "drop-shadow(0 2px 4px rgba(212,175,55,0.3))",
-                        }}
-                      />
-                      <Typography
-                        textAlign="center"
-                        fontWeight="800"
-                        color="#1a1a1a"
-                        variant="h4"
-                        sx={{
-                          textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                          letterSpacing: "1px",
-                          background:
-                            "linear-gradient(135deg, #d4af37, #f4d03f)",
-                          backgroundClip: "text",
-                          WebkitBackgroundClip: "text",
-                          WebkitTextFillColor: "transparent",
-                          fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2rem" },
-                        }}
-                      >
-                        Admin Portal
-                      </Typography>
-                    </Stack>
-
-                    <TextField
-                      inputRef={rfEmail}
-                      type="email"
-                      label="Email Address"
-                      fullWidth
-                      margin="normal"
-                      variant="outlined"
-                      placeholder="admin@tuvibe.org"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Email
-                              sx={{
-                                color: "#d4af37",
-                                transition: "all 0.3s ease",
-                                fontSize: { xs: 20, sm: 24 },
-                              }}
-                            />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.9)",
-                          borderRadius: { xs: 3, sm: 4 },
-                          border: "1px solid rgba(212, 175, 55, 0.2)",
-                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                          backdropFilter: "blur(10px)",
-                          "&:hover": {
-                            backgroundColor: "rgba(255, 255, 255, 1)",
-                            border: "1px solid rgba(212, 175, 55, 0.4)",
-                            transform: "translateY(-1px)",
-                            boxShadow: "0 4px 12px rgba(212, 175, 55, 0.15)",
-                          },
-                          "&.Mui-focused": {
-                            backgroundColor: "rgba(255, 255, 255, 1)",
-                            border: `2px solid #d4af37`,
-                            boxShadow: `
-                              0 0 0 4px rgba(212, 175, 55, 0.1),
-                              0 8px 24px rgba(212, 175, 55, 0.15)
-                            `,
-                            transform: "translateY(-2px)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(26, 26, 26, 0.7)",
-                          fontWeight: 500,
-                          fontSize: { xs: "0.9rem", sm: "1rem" },
-                          "&.Mui-focused": {
-                            color: "#d4af37",
-                          },
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#1a1a1a",
-                          fontWeight: 400,
-                          fontSize: { xs: "0.9rem", sm: "1rem" },
-                          py: { xs: 1.2, sm: 1.5 },
-                          "&::placeholder": {
-                            color: "rgba(26, 26, 26, 0.4)",
-                            opacity: 1,
-                            fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                          },
-                        },
-                      }}
-                    />
-
-                    <TextField
-                      inputRef={rfPassword}
-                      type={showPassword ? "text" : "password"}
-                      label="Password"
-                      fullWidth
-                      margin="normal"
-                      variant="outlined"
-                      placeholder="Enter your secure password"
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Security
-                              sx={{
-                                color: "#d4af37",
-                                transition: "all 0.3s ease",
-                                fontSize: { xs: 20, sm: 24 },
-                              }}
-                            />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                              sx={{
-                                color: "#d4af37",
-                                transition: "all 0.3s ease",
-                                p: { xs: 0.8, sm: 1 },
-                                "&:hover": {
-                                  color: "#b8941f",
-                                  backgroundColor: "rgba(212, 175, 55, 0.1)",
-                                  transform: "scale(1.1)",
-                                },
-                              }}
-                            >
-                              {showPassword ? (
-                                <VisibilityOff
-                                  sx={{ fontSize: { xs: 20, sm: 22 } }}
-                                />
-                              ) : (
-                                <Visibility
-                                  sx={{ fontSize: { xs: 20, sm: 22 } }}
-                                />
-                              )}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255, 255, 255, 0.9)",
-                          borderRadius: { xs: 3, sm: 4 },
-                          border: "1px solid rgba(212, 175, 55, 0.2)",
-                          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                          backdropFilter: "blur(10px)",
-                          "&:hover": {
-                            backgroundColor: "rgba(255, 255, 255, 1)",
-                            border: "1px solid rgba(212, 175, 55, 0.4)",
-                            transform: "translateY(-1px)",
-                            boxShadow: "0 4px 12px rgba(212, 175, 55, 0.15)",
-                          },
-                          "&.Mui-focused": {
-                            backgroundColor: "rgba(255, 255, 255, 1)",
-                            border: `2px solid #d4af37`,
-                            boxShadow: `
-                              0 0 0 4px rgba(212, 175, 55, 0.1),
-                              0 8px 24px rgba(212, 175, 55, 0.15)
-                            `,
-                            transform: "translateY(-2px)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(26, 26, 26, 0.7)",
-                          fontWeight: 500,
-                          fontSize: { xs: "0.9rem", sm: "1rem" },
-                          "&.Mui-focused": {
-                            color: "#d4af37",
-                          },
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#1a1a1a",
-                          fontWeight: 400,
-                          fontSize: { xs: "0.9rem", sm: "1rem" },
-                          py: { xs: 1.2, sm: 1.5 },
-                          "&::placeholder": {
-                            color: "rgba(26, 26, 26, 0.4)",
-                            opacity: 1,
-                            fontSize: { xs: "0.85rem", sm: "0.9rem" },
-                          },
-                        },
-                      }}
-                    />
-
-                    <Typography
-                      variant="body2"
-                      color="rgba(26, 26, 26, 0.7)"
-                      align="center"
-                      sx={{
-                        mt: 2,
-                        cursor: "pointer",
-                        transition: "all 0.3s ease",
-                        fontWeight: 500,
-                        "&:hover": {
-                          color: "#1a1a1a",
-                          transform: "translateY(-1px)",
-                        },
-                      }}
-                      onClick={() => setOpenResetDialog(true)}
-                    >
-                      Forgot your password?
-                      <Box
-                        component="span"
-                        sx={{
-                          color: "#d4af37",
-                          textDecoration: "underline",
-                          ml: 0.5,
-                          "&:hover": {
-                            color: "#b8941f",
-                          },
-                        }}
-                      >
-                        Reset here
-                      </Box>
-                    </Typography>
-
-                    <Button
-                      type="submit"
-                      variant="contained"
-                      fullWidth
-                      size="large"
-                      disabled={loading}
-                      startIcon={
-                        loading ? (
-                          <CircularProgress
-                            size={{ xs: 20, sm: 24 }}
-                            color="inherit"
-                          />
-                        ) : (
-                          <Login sx={{ fontSize: { xs: 20, sm: 24 } }} />
-                        )
-                      }
-                      sx={{
-                        mt: { xs: 3, sm: 4 },
-                        py: { xs: 1.5, sm: 2 },
-                        borderRadius: { xs: 3, sm: 4 },
-                        background: `
-                          linear-gradient(135deg, 
-                            #d4af37 0%, 
-                            #f4d03f 50%, 
-                            #f7dc6f 100%)
-                        `,
-                        boxShadow: `
-                          0 8px 32px rgba(212, 175, 55, 0.3),
-                          0 2px 8px rgba(212, 175, 55, 0.2),
-                          inset 0 1px 0 rgba(255, 255, 255, 0.3)
-                        `,
-                        color: "#1a1a1a",
-                        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                        textTransform: "none",
-                        fontSize: { xs: "1rem", sm: "1.1rem", md: "1.2rem" },
-                        fontWeight: 700,
-                        letterSpacing: "0.5px",
-                        position: "relative",
-                        overflow: "hidden",
-                        "&::before": {
-                          content: '""',
-                          position: "absolute",
-                          top: 0,
-                          left: "-100%",
-                          width: "100%",
-                          height: "100%",
-                          background:
-                            "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-                          transition: "left 0.5s ease",
-                        },
-                        "&:hover": {
-                          background: `
-                            linear-gradient(135deg, 
-                              #b8941f 0%, 
-                              #d4af37 50%, 
-                              #f4d03f 100%)
-                          `,
-                          boxShadow: `
-                            0 12px 48px rgba(212, 175, 55, 0.4),
-                            0 4px 16px rgba(212, 175, 55, 0.3),
-                            inset 0 1px 0 rgba(255, 255, 255, 0.4)
-                          `,
-                          transform: {
-                            xs: "translateY(-2px)",
-                            sm: "translateY(-3px) scale(1.02)",
-                          },
-                          "&::before": {
-                            left: "100%",
-                          },
-                        },
-                        "&:active": {
-                          transform: "translateY(-1px) scale(0.98)",
-                        },
-                        "&:disabled": {
-                          background: "rgba(212, 175, 55, 0.3)",
-                          color: "rgba(26, 26, 26, 0.5)",
-                          transform: "none",
-                          boxShadow: "none",
-                          "&::before": {
-                            display: "none",
-                          },
-                        },
-                      }}
-                    >
-                      {loading ? "Authenticating..." : "Access Admin Portal"}
-                    </Button>
-                  </form>
-                </Card>
-              </Slide>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-
-      {/* Developed by Card */}
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: 24,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 999,
-          transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-          "&:hover": {
-            transform: "translateX(-50%) translateY(-4px)",
-          },
-        }}
-      >
-        <Card
-          sx={{
-            position: "relative",
-            borderRadius: "16px",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            backgroundColor: "rgba(255, 255, 255, 0.25)",
-            border: "2px solid rgba(255, 255, 255, 0.5)",
-            boxShadow: `
-              0 10px 40px rgba(0, 0, 0, 0.15),
-              0 0 0 1px rgba(255, 255, 255, 0.3) inset,
-              0 2px 0 rgba(255, 255, 255, 0.6) inset,
-              0 -1px 8px rgba(0, 0, 0, 0.1) inset,
-              0 0 20px rgba(255, 215, 0, 0.1)
-            `,
-            minWidth: { xs: "240px", sm: "280px", md: "320px" },
-            maxWidth: { xs: "280px", sm: "320px", md: "360px" },
-            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-            overflow: "hidden",
-            "&::before": {
-              content: '""',
-              position: "absolute",
-              top: 0,
-              left: "-100%",
-              width: "100%",
-              height: "100%",
-              background:
-                "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent)",
-              transition: "left 0.6s ease",
-              zIndex: 0,
-            },
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.45)",
-              borderColor: "rgba(255, 255, 255, 0.8)",
-              boxShadow: `
-                0 0 30px rgba(255, 215, 0, 0.4),
-                0 15px 50px rgba(0, 0, 0, 0.2),
-                0 0 0 1px rgba(255, 255, 255, 0.4) inset,
-                0 3px 0 rgba(255, 255, 255, 0.7) inset,
-                0 -1px 12px rgba(0, 0, 0, 0.15) inset,
-                0 0 30px rgba(255, 215, 0, 0.2)
-              `,
-              "&::before": {
-                left: "100%",
-              },
-            },
-          }}
-        >
-          <CardContent
-            sx={{
-              position: "relative",
-              zIndex: 1,
-              p: { xs: 1.5, sm: 2.5 },
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: { xs: 0.25, sm: 0.5 },
-              "&:last-child": {
-                pb: { xs: 1.5, sm: 2.5 },
-              },
-            }}
-          >
-            <Typography
-              variant="body2"
-              sx={{
-                fontWeight: 500,
-                fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" },
-                color: "rgba(0, 0, 0, 0.7)",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Developed by
-            </Typography>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                fontSize: { xs: "0.75rem", sm: "0.95rem", md: "1.1rem" },
-                color: "rgba(0, 0, 0, 0.9)",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              Carlvyne Technologies Ltd
-            </Typography>
-          </CardContent>
-        </Card>
-      </Box>
-
-      <Dialog
-        open={openResetDialog}
-        onClose={() => setOpenResetDialog(false)}
-        fullWidth
-        maxWidth="sm"
-        TransitionComponent={Slide}
-        transitionDuration={400}
-        PaperProps={{
-          sx: {
-            borderRadius: 4,
-            background: "rgba(255, 255, 255, 0.98)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(212, 175, 55, 0.2)",
-            boxShadow: "0 20px 40px rgba(212, 175, 55, 0.15)",
-          },
-        }}
-      >
-        <DialogTitle
-          sx={{
-            background: `linear-gradient(135deg, 
-              #d4af37 0%, 
-              #f4d03f 100%)`,
-            color: "#1a1a1a",
-            fontWeight: 700,
-            fontSize: "1.3rem",
-            letterSpacing: "0.5px",
-            textAlign: "center",
-            py: 3,
-          }}
-        >
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="center"
-            spacing={2}
-          >
-            <Security sx={{ fontSize: 28 }} />
-            <Box>Reset Password</Box>
-          </Stack>
-        </DialogTitle>
-        <Divider />
-        <DialogContent sx={{ pt: 4, pb: 2 }}>
-          <DialogContentText
-            sx={{
-              mb: 3,
-              fontSize: "1rem",
-              color: "rgba(0,0,0,0.7)",
-              textAlign: "center",
-              lineHeight: 1.6,
-            }}
-          >
-            Enter your registered email address and we'll send you a secure link
-            to reset your password.
-          </DialogContentText>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              reset();
-            }}
-          >
-            <TextField
-              inputRef={rsEmail}
-              type="email"
-              label="Email Address"
-              fullWidth
-              margin="normal"
-              placeholder="admin@tuvibe.com"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Email sx={{ color: "rgba(0,0,0,0.6)" }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 3,
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(76, 175, 80, 0.5)",
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(76, 175, 80, 1)",
-                    borderWidth: 2,
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: "rgba(76, 175, 80, 1)",
-                },
-              }}
-            />
-            <DialogActions sx={{ mt: 4, gap: 2, px: 0 }}>
-              <Button
-                onClick={() => setOpenResetDialog(false)}
-                variant="outlined"
-                sx={{
-                  borderColor: "rgba(0,0,0,0.3)",
-                  color: "rgba(0,0,0,0.7)",
-                  borderRadius: 3,
-                  px: 3,
-                  py: 1,
-                  fontWeight: 600,
-                  "&:hover": {
-                    borderColor: "rgba(0,0,0,0.5)",
-                    backgroundColor: "rgba(0,0,0,0.05)",
-                  },
-                }}
-                disabled={resetLoading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                sx={{
-                  background: `linear-gradient(135deg, 
-                    #d4af37 0%, 
-                    #f4d03f 100%)`,
-                  borderRadius: 3,
-                  px: 3,
-                  py: 1,
-                  fontWeight: 600,
-                  textTransform: "none",
-                  color: "#1a1a1a",
-                  boxShadow: "0 4px 12px rgba(212, 175, 55, 0.3)",
-                  "&:hover": {
-                    background: `linear-gradient(135deg, 
-                      #b8941f 0%, 
-                      #d4af37 100%)`,
-                    boxShadow: "0 6px 16px rgba(212, 175, 55, 0.4)",
-                    transform: "translateY(-1px)",
-                  },
-                }}
-                disabled={resetLoading}
-                startIcon={
-                  resetLoading ? (
-                    <CircularProgress size={18} color="inherit" />
-                  ) : (
-                    <Security />
-                  )
-                }
-              >
-                {resetLoading ? "Sending..." : "Send Reset Password"}
-              </Button>
-            </DialogActions>
-          </form>
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 }
+
+export default function LoginPage() {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isShort = useMediaQuery("(max-height: 820px)");
+
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    const normalized = normalizePhone(phone);
+    if (!normalized || !password) {
+      setError("Enter your admin phone number and password.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { user, token } = await adminLogin({ phone: normalized, password });
+      saveAdminSession({ token, user });
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box sx={pageSx}>
+      <AdminBackground />
+
+      <Box
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          maxWidth: { xs: 480, sm: 520, md: 1100, lg: 1200 },
+          mx: "auto",
+          px: { xs: 2, sm: 3, md: 3, lg: 4 },
+          py: { xs: 2, sm: 2.5, md: 2 },
+          flex: 1,
+          minHeight: 0,
+          maxHeight: "100dvh",
+          overflow: { xs: "auto", md: "hidden" },
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+          gap: { xs: 3, md: 4, lg: 7 },
+          alignItems: "center",
+        }}
+      >
+        {/* Brand panel */}
+        <motion.div
+          initial={{ opacity: 0, x: -24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              justifyContent={{ xs: "center", md: "flex-start" }}
+              sx={{ mb: 2 }}
+            >
+              <Box sx={logoSx}>
+                <AdminPanelSettings sx={{ fontSize: { xs: 26, md: 30 }, color: "#050508" }} />
+              </Box>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: "20px",
+                  bgcolor: "rgba(139,92,246,0.15)",
+                  border: "1px solid rgba(139,92,246,0.35)",
+                }}
+              >
+                <Shield sx={{ fontSize: 14, color: "#A78BFA" }} />
+                <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, color: "#A78BFA", letterSpacing: "0.06em" }}>
+                  ADMIN ONLY
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Typography
+              variant="h2"
+              sx={{
+                fontWeight: 800,
+                fontSize: {
+                  xs: "1.85rem",
+                  sm: "2.35rem",
+                  md: isShort ? "2rem" : "2.5rem",
+                  lg: isShort ? "2.25rem" : "2.85rem",
+                },
+                lineHeight: 1.08,
+                letterSpacing: "-0.04em",
+                mb: 1,
+              }}
+            >
+              Chapa
+              <Box
+                component="span"
+                sx={{
+                  background: "linear-gradient(135deg, #A78BFA 0%, #F5C518 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Quiz
+              </Box>
+              <Box component="span" sx={{ display: "block", fontSize: "0.55em", color: "text.secondary", mt: 0.5, fontWeight: 600 }}>
+                Control Center
+              </Box>
+            </Typography>
+
+            <Typography
+              sx={{
+                color: "text.secondary",
+                fontSize: { xs: "0.9rem", md: "1rem" },
+                lineHeight: 1.65,
+                maxWidth: 420,
+                mx: { xs: "auto", md: 0 },
+                mb: { xs: 2, md: isShort ? 1.5 : 2.5 },
+              }}
+            >
+              Manage questions, oversee live matches, and process M-Pesa withdrawals — everything needed to run ChapaQuiz.
+            </Typography>
+
+            <Stack
+              spacing={1.25}
+              sx={{ display: { xs: "none", sm: isShort && !isMobile ? "none" : "flex" } }}
+            >
+              {ADMIN_TOOLS.map(({ icon: Icon, text, sub }, i) => (
+                <motion.div
+                  key={text}
+                  initial={{ opacity: 0, x: -14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + i * 0.08 }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, justifyContent: { xs: "center", md: "flex-start" } }}>
+                    <Box
+                      sx={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(245,197,24,0.08) 100%)",
+                        border: "1px solid rgba(139,92,246,0.25)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#A78BFA",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Icon sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Box sx={{ textAlign: { xs: "center", md: "left" } }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: "0.9rem" }}>{text}</Typography>
+                      <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>{sub}</Typography>
+                    </Box>
+                  </Box>
+                </motion.div>
+              ))}
+            </Stack>
+
+            {/* Mobile tool pills */}
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              gap={0.75}
+              justifyContent="center"
+              sx={{ display: { xs: "flex", sm: "none" } }}
+            >
+              {ADMIN_TOOLS.map(({ icon: Icon, text }) => (
+                <Box
+                  key={text}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    px: 1.25,
+                    py: 0.6,
+                    borderRadius: "18px",
+                    bgcolor: "rgba(139,92,246,0.1)",
+                    border: "1px solid rgba(139,92,246,0.2)",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  <Icon sx={{ fontSize: 13, color: "#A78BFA" }} />
+                  {text}
+                </Box>
+              ))}
+            </Stack>
+          </Box>
+        </motion.div>
+
+        {/* Login card */}
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          style={{ width: "100%" }}
+        >
+          <Box
+            sx={{
+              ...cardSx,
+              position: "relative",
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                inset: 0,
+                borderRadius: "inherit",
+                padding: "1px",
+                background: "linear-gradient(135deg, rgba(139,92,246,0.5), rgba(255,255,255,0.05), rgba(245,197,24,0.25))",
+                WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                WebkitMaskComposite: "xor",
+                maskComposite: "exclude",
+                pointerEvents: "none",
+              },
+            }}
+          >
+            <Stack direction="row" alignItems="center" justifyContent="center" spacing={1} sx={{ mb: 0.5 }}>
+              <VerifiedUser sx={{ color: "#A78BFA", fontSize: 22 }} />
+              <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.2rem", sm: "1.35rem" } }}>
+                Admin sign in
+              </Typography>
+            </Stack>
+            <Typography color="text.secondary" sx={{ fontSize: "0.82rem", textAlign: "center", mb: 2.5 }}>
+              Authorized personnel only — no public registration
+            </Typography>
+
+            <Box component="form" onSubmit={handleSubmit}>
+              {error && (
+                <Alert severity="error" sx={{ mb: 1.5, py: 0.25 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <TextField
+                fullWidth
+                size="small"
+                margin="dense"
+                label="Admin phone"
+                placeholder="+254712345678"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+                helperText=" "
+                FormHelperTextProps={{ sx: { minHeight: "1.25em" } }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Phone sx={{ color: "text.secondary", fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                fullWidth
+                size="small"
+                margin="dense"
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                helperText=" "
+                FormHelperTextProps={{ sx: { minHeight: "1.25em" } }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Lock sx={{ color: "text.secondary", fontSize: 18 }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        aria-label="toggle password"
+                        sx={{ color: "text.secondary" }}
+                      >
+                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                disabled={loading}
+                className="admin-shimmer-btn"
+                sx={{
+                  mt: 2,
+                  py: { xs: 1.3, md: 1.25 },
+                  color: "#fff !important",
+                  fontWeight: 800,
+                  fontSize: "0.95rem",
+                  borderRadius: "14px",
+                  "&:disabled": {
+                    background: "rgba(139,92,246,0.35) !important",
+                    animation: "none",
+                    color: "rgba(255,255,255,0.45) !important",
+                  },
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={22} sx={{ color: "#fff" }} />
+                ) : (
+                  "Access dashboard →"
+                )}
+              </Button>
+            </Box>
+
+            <Box
+              sx={{
+                mt: 2,
+                p: 1.5,
+                borderRadius: "12px",
+                bgcolor: "rgba(139,92,246,0.08)",
+                border: "1px solid rgba(139,92,246,0.15)",
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 1,
+              }}
+            >
+              <Shield sx={{ fontSize: 16, color: "#A78BFA", mt: 0.15, flexShrink: 0 }} />
+              <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.55, fontSize: "0.72rem" }}>
+                Secured session. Admin accounts are created by superadmin only. Player accounts cannot access this portal.
+              </Typography>
+            </Box>
+          </Box>
+        </motion.div>
+      </Box>
+
+      <Typography
+        variant="caption"
+        sx={{
+          position: "relative",
+          zIndex: 1,
+          color: "text.secondary",
+          opacity: 0.6,
+          pb: { xs: 2, md: 1.5 },
+          fontSize: "0.68rem",
+        }}
+      >
+        ChapaQuiz Admin © {new Date().getFullYear()}
+      </Typography>
+    </Box>
+  );
+}
+
+const pageSx = {
+  height: "100dvh",
+  maxHeight: "100dvh",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  position: "relative",
+  overflow: "hidden",
+  bgcolor: "#050508",
+};
+
+const cardSx = {
+  bgcolor: "rgba(12,12,20,0.8)",
+  backdropFilter: "blur(24px)",
+  WebkitBackdropFilter: "blur(24px)",
+  border: "1px solid rgba(255,255,255,0.07)",
+  borderRadius: { xs: "20px", sm: "24px" },
+  p: { xs: 2.5, sm: 3, md: 2.75, lg: 3.25 },
+  boxShadow: "0 32px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.05)",
+  maxWidth: 440,
+  mx: "auto",
+};
+
+const logoSx = {
+  width: { xs: 50, md: 56 },
+  height: { xs: 50, md: 56 },
+  borderRadius: "16px",
+  background: "linear-gradient(135deg, #A78BFA 0%, #8B5CF6 50%, #F5C518 100%)",
+  backgroundSize: "200% 200%",
+  animation: "gradient-shift 5s ease infinite",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 8px 32px rgba(139,92,246,0.4), 0 0 0 1px rgba(255,255,255,0.08) inset",
+  flexShrink: 0,
+};

@@ -1,73 +1,57 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
-import { Box, CircularProgress, Card } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import Navbar from "./Navbar";
+import Dashboard from "./Dashboard/Dashboard";
+import Users from "./Users/Users";
+import Questions from "./Questions/Questions";
 import Settings from "../Pages/Settings";
 import NotFound from "../Pages/NotFound";
-import TuvibeMap from "../TuvibeMap";
-import UsersTable from "./Users/UsersTable";
-import Analytics from "./Analytics/Analytics";
-import Verification from "./Verification/Verification";
-import Marketplace from "./Marketplace/Marketplace";
-import Reports from "./Reports/Reports";
-import StoriesModeration from "./Stories/StoriesModeration";
-import PostsModeration from "./Posts/PostsModeration";
-import StoryMusic from "./StoryMusic/StoryMusic";
-import FakeContent from "./FakeContent/FakeContent";
 
-function PageRoutes() {
+export default function PageRoutes() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load user from localStorage on component mount
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
 
     if (savedUser && token) {
       setUser(JSON.parse(savedUser));
-      setLoading(false);
     } else {
-      // Redirect to login if no user or token
       window.location.href = "/";
     }
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      setLoading(false);
-    }
-  }, [user]);
-
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", height: "100dvh", overflow: "hidden", width: "100%" }}>
       <Navbar user={user} setUser={setUser} />
-      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 9 }}>
+      <Box
+        component="main"
+        sx={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          pt: 8,
+          px: { xs: 2, md: 3 },
+          pb: 4,
+          overflowY: "auto",
+          overflowX: "hidden",
+        }}
+      >
         {loading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              height: "100vh",
-            }}
-          >
-            <CircularProgress />
+          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+            <CircularProgress sx={{ color: "#8B5CF6" }} />
           </Box>
         ) : (
           <Routes>
-            <Route path="home" element={<Navigate to="/analytics" replace />} />
-            <Route path="map" element={<TuvibeMap />} />
-            <Route path="verification" element={<Verification />} />
-            <Route path="marketplace" element={<Marketplace />} />
-            <Route path="stories" element={<StoriesModeration />} />
-            <Route path="stories/music" element={<StoryMusic />} />
-            <Route path="posts" element={<PostsModeration />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="analytics" element={<Analytics />} />
-            <Route path="users" element={<UsersTable />} />
-            <Route path="settings" element={<Settings user={user} />} />
-            <Route path="fake-content" element={<FakeContent />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/analytics" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/questions" element={<Questions />} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/settings" element={<Settings user={user} setUser={setUser} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         )}
@@ -75,5 +59,3 @@ function PageRoutes() {
     </Box>
   );
 }
-
-export default PageRoutes;

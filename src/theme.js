@@ -2,44 +2,53 @@ import { createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
   palette: {
-    primary: {
-      main: "#0e8d45", // Vihiga green as primary color
-      light: "#40a86c", // Lighter variant
-      dark: "#0a6231", // Darker variant
-    },
-    secondary: {
-      main: "#f1ea32", // Vihiga yellow as secondary color
-      light: "#f4ef5b", // Lighter variant
-      dark: "#c1bb28", // Darker variant
-    },
-    info: {
-      main: "#2491cf", // Vihiga blue
-      light: "#4fa7d9", // Lighter variant
-      dark: "#1b73a5", // Darker variant
-    },
-    background: {
-      default: "#ffffff",
-      paper: "#f9f9f9",
-      dark: "#090909", // Vihiga dark color
-    },
-    text: {
-      primary: "#090909", // Using Vihiga dark for text
-      secondary: "#555555",
-    },
-    // Keep success color for notifications/status indicators
-    success: {
-      main: "#0e8d45", // Using Vihiga green for success states
-      light: "#40a86c",
-      dark: "#0a6231",
-    },
+    mode: "dark",
+    primary: { main: "#8B5CF6", light: "#A78BFA", dark: "#6D28D9" },
+    secondary: { main: "#F5C518", light: "#FFE566", dark: "#C9A000" },
+    background: { default: "#050508", paper: "#0E0E16" },
+    text: { primary: "#FAFAFA", secondary: "#8B8FA3" },
+    error: { main: "#FF4D6A" },
+    success: { main: "#10F0A0" },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 500,
+    fontFamily: '"Plus Jakarta Sans", "Segoe UI", sans-serif',
+    h1: { fontWeight: 800, letterSpacing: "-0.04em" },
+    h2: { fontWeight: 800, letterSpacing: "-0.03em" },
+    button: { textTransform: "none", fontWeight: 700 },
+  },
+  shape: { borderRadius: 16 },
+  breakpoints: {
+    values: { xs: 0, sm: 480, md: 768, lg: 1024, xl: 1280 },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: { borderRadius: 14, padding: "13px 28px" },
+      },
     },
-    button: {
-      textTransform: "none",
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 14,
+            backgroundColor: "rgba(255,255,255,0.03)",
+            transition: "border-color 0.2s, box-shadow 0.2s, background 0.2s",
+            "& fieldset": { borderColor: "rgba(255,255,255,0.08)" },
+            "&:hover fieldset": { borderColor: "rgba(255,255,255,0.18)" },
+            "&.Mui-focused": {
+              backgroundColor: "rgba(255,255,255,0.05)",
+              boxShadow: "0 0 0 3px rgba(139,92,246,0.2)",
+              "& fieldset": { borderColor: "#8B5CF6" },
+            },
+          },
+          "& .MuiInputLabel-root.Mui-focused": { color: "#A78BFA" },
+        },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: { borderRadius: 12 },
+      },
     },
   },
 });

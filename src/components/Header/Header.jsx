@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Box,
   IconButton,
@@ -11,11 +11,12 @@ import {
   Menu as MenuIcon,
   ArrowDropDown as ArrowDropDownIcon,
   AccountCircle as AccountCircleIcon,
-  Lock as LockIcon,
+  Settings as SettingsIcon,
   Logout as LogoutIcon,
 } from "@mui/icons-material";
 import UserAccount from "./userAccount";
 import { useNavigate } from "react-router-dom";
+import { clearAdminSession } from "../../api";
 
 const LoadingScreen = () => (
   <Box
@@ -28,24 +29,22 @@ const LoadingScreen = () => (
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(255, 255, 255, 1)",
-      zIndex: 1300, // Ensure it covers other components
+      backgroundColor: "rgba(15, 10, 30, 0.95)",
+      zIndex: 1300,
     }}
   >
-    <CircularProgress />
+    <CircularProgress sx={{ color: "#8B5CF6" }} />
   </Box>
 );
 
 export default function Header(props) {
-  const [currentUser, setCurrentUser] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [toggleAccount, setToggleAccount] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    setLoading(true);
-    // Load user from localStorage instead of API call
     const savedUser = localStorage.getItem("user");
     const token = localStorage.getItem("token");
 
@@ -53,28 +52,20 @@ export default function Header(props) {
       const userData = JSON.parse(savedUser);
       setCurrentUser(userData);
       props.setUser(userData);
-      setLoading(false);
     } else {
-      // Redirect to login if no user or token
       window.location.href = "/";
     }
+    setLoading(false);
   }, []);
 
+  useEffect(() => {
+    if (props.user) setCurrentUser(props.user);
+  }, [props.user]);
+
   const logout = () => {
-    localStorage.clear();
+    clearAdminSession();
+    props.setUser(null);
     navigate("/");
-    fetch("/api/admin/logout", {
-      method: "GET",
-      credentials: "include",
-    });
-  };
-
-  const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
   };
 
   return (
@@ -85,11 +76,8 @@ export default function Header(props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          p: 2,
-          color: "#ffffff",
           width: "100%",
-          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
+          color: "#ffffff",
         }}
       >
         <IconButton
@@ -98,40 +86,23 @@ export default function Header(props) {
           edge="start"
           sx={{
             color: "#ffffff",
-            marginRight: 5,
+            mr: 2,
             ...(props.open && { display: "none" }),
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.2)",
-            },
+            "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.15)" },
           }}
         >
           <MenuIcon />
         </IconButton>
 
-        <Box sx={{ flexGrow: 1 }}></Box>
+        <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: "flex", alignItems: "center" }}>
-          <Typography
-            variant="body1"
-            sx={{
-              mr: 1,
-              color: "#ffffff",
-              fontWeight: 600,
-              fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-              textShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            {currentUser?.name}
+          <Typography variant="body1" sx={{ mr: 1, fontWeight: 600 }}>
+            {currentUser?.nickname || currentUser?.phone}
           </Typography>
-
           <IconButton
-            onClick={handleClick}
-            sx={{
-              color: "#ffffff",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.2)",
-              },
-            }}
+            onClick={(e) => setAnchorEl(e.currentTarget)}
+            sx={{ color: "#ffffff", "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.15)" } }}
           >
             <ArrowDropDownIcon />
           </IconButton>
@@ -140,78 +111,33 @@ export default function Header(props) {
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
-          onClose={handleClose}
-          PaperProps={{
-            sx: {
-              mt: 1.5,
-              minWidth: 200,
-              borderRadius: 2,
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
-              border: "1px solid rgba(212, 175, 55, 0.15)",
-            },
-          }}
+          onClose={() => setAnchorEl(null)}
+          PaperProps={{ sx: { mt: 1.5, minWidth: 200, borderRadius: 2 } }}
         >
           <MenuItem
             onClick={() => {
               setToggleAccount(true);
-              handleClose();
-            }}
-            sx={{
-              color: "#1a1a1a",
-              fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-              "&:hover": {
-                backgroundColor: "rgba(212, 175, 55, 0.1)",
-              },
-              "& .MuiSvgIcon-root": {
-                color: "#d4af37",
-              },
+              setAnchorEl(null);
             }}
           >
-            <AccountCircleIcon sx={{ mr: 1 }} /> Account
+            <AccountCircleIcon sx={{ mr: 1, color: "primary.main" }} /> Account
           </MenuItem>
           <MenuItem
             onClick={() => {
               navigate("/settings");
-              handleClose();
-            }}
-            sx={{
-              color: "#1a1a1a",
-              fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-              "&:hover": {
-                backgroundColor: "rgba(212, 175, 55, 0.1)",
-              },
-              "& .MuiSvgIcon-root": {
-                color: "#d4af37",
-              },
+              setAnchorEl(null);
             }}
           >
-            <LockIcon sx={{ mr: 1 }} /> Change Password
+            <SettingsIcon sx={{ mr: 1, color: "primary.main" }} /> Settings
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              logout();
-              handleClose();
-            }}
-            sx={{
-              color: "#1a1a1a",
-              fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-              "&:hover": {
-                backgroundColor: "rgba(212, 175, 55, 0.1)",
-              },
-              "& .MuiSvgIcon-root": {
-                color: "#d4af37",
-              },
-            }}
-          >
-            <LogoutIcon sx={{ mr: 1 }} /> Logout
+          <MenuItem onClick={logout}>
+            <LogoutIcon sx={{ mr: 1, color: "primary.main" }} /> Logout
           </MenuItem>
         </Menu>
 
         {currentUser && (
           <UserAccount
-            onClose={() => {
-              setToggleAccount(false);
-            }}
+            onClose={() => setToggleAccount(false)}
             open={toggleAccount}
             currentUser={currentUser}
           />

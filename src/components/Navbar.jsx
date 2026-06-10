@@ -1,39 +1,5 @@
-import React, { cloneElement, Fragment, useEffect, useState } from "react";
-import {
-  People,
-  Logout,
-  ExpandLess,
-  ExpandMore,
-  PeopleAlt,
-  Map,
-  Dashboard,
-  CreditCard,
-  MapOutlined,
-  StarRateSharp,
-  Search,
-  DataArray,
-  DataObject,
-  Help,
-  DataUsage,
-  AccountCircle,
-  Description,
-  AccountBalance,
-  LocationOn,
-  Settings,
-  QuestionAnswer,
-  Schedule,
-  Folder,
-  History,
-  RateReview,
-  Store,
-  Report,
-  AutoStories,
-  Article,
-  MusicNote,
-  PersonAdd,
-} from "@mui/icons-material";
-import { Money } from "@phosphor-icons/react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { cloneElement } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { styled, useTheme } from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
 import MuiAppBar from "@mui/material/AppBar";
@@ -49,12 +15,12 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { Box } from "@mui/material";
+import { Dashboard, PeopleAlt, Quiz, Settings, Logout } from "@mui/icons-material";
+import { useEffect, useState } from "react";
 import Header from "./Header/Header";
-import { Gear } from "@phosphor-icons/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBuilding } from "@fortawesome/free-solid-svg-icons";
+import { clearAdminSession } from "../api";
 
-const drawerWidth = 300;
+const drawerWidth = 260;
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -79,11 +45,9 @@ const closedMixin = (theme) => ({
 
 const DrawerHeader = styled("div")(({ theme }) => ({
   display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  padding: theme.spacing(1, 0, 1, 1),
-  backgroundColor: "#fff",
-  color: "#2596be",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  padding: theme.spacing(0, 1),
   ...theme.mixins.toolbar,
 }));
 
@@ -91,8 +55,8 @@ const AppBar = styled(MuiAppBar, {
   shouldForwardProp: (prop) => prop !== "open",
 })(({ theme, open }) => ({
   zIndex: theme.zIndex.drawer + 1,
-  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  boxShadow: "0 4px 20px rgba(102, 126, 234, 0.3)",
+  background: "linear-gradient(135deg, #6D28D9 0%, #8B5CF6 50%, #4C1D95 100%)",
+  boxShadow: "0 4px 24px rgba(109, 40, 217, 0.35)",
   transition: theme.transitions.create(["width", "margin"], {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
@@ -114,7 +78,6 @@ const Drawer = styled(MuiDrawer, {
   flexShrink: 0,
   whiteSpace: "nowrap",
   boxSizing: "border-box",
-  overflowY: "hidden", // Disable vertical scrollbar
   ...(open && {
     ...openedMixin(theme),
     "& .MuiDrawer-paper": openedMixin(theme),
@@ -125,282 +88,91 @@ const Drawer = styled(MuiDrawer, {
   }),
 }));
 
-const Navbar = (props) => {
-  const { user } = props; // Expecting user role from props
+const menuItems = [
+  { text: "Dashboard", icon: <Dashboard />, path: "/dashboard" },
+  { text: "Questions", icon: <Quiz />, path: "/questions" },
+  { text: "Users", icon: <PeopleAlt />, path: "/users" },
+  { text: "Settings", icon: <Settings />, path: "/settings" },
+];
+
+export default function Navbar({ user, setUser }) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const [open, setOpen] = useState(() => {
-    return window.innerWidth >= theme.breakpoints.values.md;
-  });
-  const [openSections, setOpenSections] = useState({
-    Resources: false,
-    System: false,
-  });
-  const [menuItems, setMenuItems] = useState([]);
+  const [open, setOpen] = useState(() => window.innerWidth >= theme.breakpoints.values.md);
 
-  const handleDrawerOpen = () => setOpen(true);
-  const handleDrawerClose = () => setOpen(false);
-
-  const handleToggle = (section) => {
-    setOpenSections((prevState) => ({
-      ...prevState,
-      [section]: !prevState[section],
-    }));
-  };
+  useEffect(() => {
+    const onResize = () => setOpen(window.innerWidth >= theme.breakpoints.values.md);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [theme.breakpoints.values.md]);
 
   const logout = () => {
-    localStorage.clear();
+    clearAdminSession();
+    setUser(null);
     navigate("/");
-    fetch("/api/admin-users/logout", {
-      method: "GET",
-      credentials: "include",
-    });
   };
-
-  const adminItems = [
-    { text: "Dashboard", icon: <Dashboard />, path: "/analytics" },
-    {
-      text: "Users",
-      icon: <PeopleAlt />,
-      path: "/users",
-    },
-    {
-      text: "Marketplace",
-      icon: <Store />,
-      path: "/marketplace",
-    },
-    {
-      text: "Stories",
-      icon: <AutoStories />,
-      path: "/stories",
-    },
-    {
-      text: "Story Music",
-      icon: <MusicNote />,
-      path: "/stories/music",
-    },
-    {
-      text: "Posts",
-      icon: <Article />,
-      path: "/posts",
-    },
-    {
-      text: "Resources",
-      icon: <Folder />,
-      subItems: [
-        {
-          text: "Tuvibe Map",
-          icon: <Map />,
-          path: "/map",
-        },
-        {
-          text: "Reports",
-          icon: <Report />,
-          path: "/reports",
-        },
-      ],
-    },
-    {
-      text: "System",
-      icon: <Settings />,
-      subItems: [
-        {
-          text: "Settings",
-          icon: <Settings />,
-          path: "/settings",
-        },
-        {
-          text: "Fake Content",
-          icon: <PersonAdd />,
-          path: "/fake-content",
-        },
-      ],
-    },
-  ];
-
-  useEffect(() => {
-    if (user) {
-      // if (
-      //   user.Department ===
-      //   "Lands, Physical Planning, Housing and Urban Development"
-      // ) {
-      //   setMenuItems(adminItems);
-      // } else if (user.Department === "ICT") {
-      //   // setMenuItems(ICTItems);
-      // } else if (user.Department === "Finance and Economic Planning") {
-      //   // setMenuItems(financeItems);
-      // }
-      setMenuItems(adminItems);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setOpen(window.innerWidth >= theme.breakpoints.values.md);
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [theme.breakpoints.values.md]);
 
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
       <AppBar position="fixed" open={open}>
         <Toolbar>
-          <Header
-            setUser={props.setUser}
-            handleDrawerOpen={handleDrawerOpen}
-            open={open}
-          />
+          <Header user={user} setUser={setUser} handleDrawerOpen={() => setOpen(true)} open={open} />
         </Toolbar>
       </AppBar>
       <Drawer variant="permanent" open={open}>
         <DrawerHeader>
-          <Box></Box>
-          <IconButton onClick={handleDrawerClose}>
-            {theme.direction === "rtl" ? (
-              <ChevronRightIcon />
-            ) : (
-              <ChevronLeftIcon />
-            )}
+          <IconButton onClick={() => setOpen(false)}>
+            {theme.direction === "rtl" ? <ChevronRightIcon /> : <ChevronLeftIcon />}
           </IconButton>
         </DrawerHeader>
         <Divider />
-        <List>
-          {menuItems.map((item) => (
-            <Fragment key={item.text}>
-              {item.subItems ? (
-                <>
-                  <ListItem
-                    button
-                    onClick={() => handleToggle(item.text)}
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      pr: 1,
-                    }}
-                  >
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", flex: 1 }}
-                    >
-                      <ListItemIcon>{item.icon}</ListItemIcon>
-                      <ListItemText
-                        sx={{
-                          fontSize: "small",
-                          color:
-                            location.pathname === item.path
-                              ? "primary"
-                              : "textSecondary",
-                          fontWeight:
-                            location.pathname === item.path ? "bold" : "normal",
-                        }}
-                        primary={item.text}
-                      />
-                    </Box>
-                    <Box sx={{ ml: "auto" }}>
-                      {openSections[item.text] ? (
-                        <ExpandLess />
-                      ) : (
-                        <ExpandMore />
-                      )}
-                    </Box>
-                  </ListItem>
-                  {openSections[item.text] && (
-                    <List component="div" disablePadding>
-                      {item.subItems.map((subItem) => (
-                        <ListItem
-                          key={subItem.text}
-                          button
-                          onClick={() => navigate(subItem.path)}
-                          selected={location.pathname === subItem.path}
-                          sx={{
-                            fontSize: "x-small",
-                            pl: 4, // Indent subitems
-                            typography: "body2", // Reduce font size
-                            fontStyle: "italic", // Italicize text
-                            cursor: "pointer",
-                            bgcolor:
-                              location.pathname === subItem.path
-                                ? "action.selected"
-                                : "transparent", // Highlight selected subitem
-                          }}
-                        >
-                          <ListItemIcon>{subItem.icon}</ListItemIcon>
-                          <ListItemText
-                            primary={subItem.text}
-                            sx={{
-                              fontSize: "x-small",
-                              color:
-                                location.pathname === item.path
-                                  ? "primary"
-                                  : "textSecondary",
-                              fontWeight:
-                                location.pathname === item.path
-                                  ? "bold"
-                                  : "normal", // Highlight text for selected item
-                            }}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  )}
-                </>
-              ) : (
-                <ListItem
-                  key={item.text}
-                  button
+        <List sx={{ px: 1, pt: 1 }}>
+          {menuItems.map((item) => {
+            const selected = location.pathname === item.path;
+            return (
+              <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
                   onClick={() => navigate(item.path)}
-                  selected={location.pathname === item.path}
+                  selected={selected}
                   sx={{
-                    cursor: "pointer",
-                    bgcolor:
-                      location.pathname === item.path
-                        ? "action.selected"
-                        : "transparent", // Highlight selected item
+                    borderRadius: 2,
+                    "&.Mui-selected": {
+                      bgcolor: "rgba(139, 92, 246, 0.15)",
+                      "&:hover": { bgcolor: "rgba(139, 92, 246, 0.22)" },
+                    },
                   }}
                 >
-                  <ListItemIcon>
+                  <ListItemIcon sx={{ minWidth: 40 }}>
                     {cloneElement(item.icon, {
-                      color:
-                        location.pathname === item.path
-                          ? "primary"
-                          : "textSecondary",
+                      sx: { color: selected ? "primary.main" : "text.secondary" },
                     })}
                   </ListItemIcon>
                   <ListItemText
                     primary={item.text}
-                    sx={{
-                      cursor: "pointer",
-                      color:
-                        location.pathname === item.path
-                          ? "primary"
-                          : "textSecondary",
-                      fontWeight:
-                        location.pathname === item.path ? "bold" : "normal", // Highlight text for selected item
+                    primaryTypographyProps={{
+                      fontWeight: selected ? 700 : 500,
+                      fontSize: "0.9rem",
                     }}
                   />
-                </ListItem>
-              )}
-            </Fragment>
-          ))}
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
         </List>
-        <Divider />
-        <List>
+        <Divider sx={{ mt: "auto" }} />
+        <List sx={{ px: 1, pb: 1 }}>
           <ListItem disablePadding>
-            <ListItemButton onClick={logout} sx={{ cursor: "pointer" }}>
-              <ListItemIcon>
-                <Logout />
+            <ListItemButton onClick={logout} sx={{ borderRadius: 2 }}>
+              <ListItemIcon sx={{ minWidth: 40 }}>
+                <Logout sx={{ color: "text.secondary" }} />
               </ListItemIcon>
-              <ListItemText primary="Logout" />
+              <ListItemText primary="Logout" primaryTypographyProps={{ fontSize: "0.9rem" }} />
             </ListItemButton>
           </ListItem>
         </List>
       </Drawer>
     </Box>
   );
-};
-
-export default Navbar;
+}

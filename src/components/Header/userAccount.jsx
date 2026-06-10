@@ -1,323 +1,89 @@
-import React from "react";
 import {
   Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
   IconButton,
   Typography,
-  Divider,
-  Button,
-  Avatar,
   Chip,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import PersonIcon from "@mui/icons-material/Person";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
-import WorkIcon from "@mui/icons-material/Work";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import LoginIcon from "@mui/icons-material/Login";
+import ShieldIcon from "@mui/icons-material/Shield";
+
+function Field({ icon, label, children }) {
+  return (
+    <Box
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        border: "1px solid rgba(255,255,255,0.08)",
+        bgcolor: "background.paper",
+      }}
+    >
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 0.5, textTransform: "uppercase" }}
+      >
+        {icon}
+        {label}
+      </Typography>
+      {children}
+    </Box>
+  );
+}
 
 export default function UserAccount({ open, onClose, currentUser }) {
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-        },
-      }}
-    >
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 3 } }}>
       <DialogTitle
         sx={{
-          background:
-            "linear-gradient(135deg, #d4af37 0%, #f4d03f 50%, #f7dc6f 100%)",
+          background: "linear-gradient(135deg, #6D28D9 0%, #8B5CF6 100%)",
           color: "white",
-          fontWeight: "bold",
           display: "flex",
           alignItems: "center",
           gap: 2,
-          p: 3,
-          position: "relative",
-          overflow: "hidden",
+          pr: 6,
         }}
       >
-        {/* Decorative Elements */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: -20,
-            right: -20,
-            width: 100,
-            height: 100,
-            background: "rgba(255, 255, 255, 0.1)",
-            borderRadius: "50%",
-            zIndex: 0,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: -15,
-            left: -15,
-            width: 80,
-            height: 80,
-            background: "rgba(255, 255, 255, 0.05)",
-            borderRadius: "50%",
-            zIndex: 0,
-          }}
-        />
-
-        <PersonIcon sx={{ position: "relative", zIndex: 1, fontSize: 28 }} />
-        <Box sx={{ position: "relative", zIndex: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Account Details
+        <PersonIcon />
+        <Box>
+          <Typography variant="h6" fontWeight={700}>
+            Account
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.9rem" }}>
-            {currentUser?.name}
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            {currentUser?.nickname}
           </Typography>
         </Box>
-
-        <IconButton
-          onClick={onClose}
-          sx={{
-            position: "absolute",
-            top: 16,
-            right: 16,
-            color: "white",
-            zIndex: 1,
-            "&:hover": {
-              backgroundColor: "rgba(255,255,255,0.1)",
-            },
-          }}
-        >
+        <IconButton onClick={onClose} sx={{ position: "absolute", right: 12, top: 12, color: "white" }}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 3, backgroundColor: "#fafafa" }}>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {/* Name */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(212, 175, 55, 0.1)",
-              border: "1px solid rgba(212, 175, 55, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <PersonIcon sx={{ fontSize: 16, color: "#d4af37" }} />
-              Name
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.name}
-            </Typography>
-          </Box>
-
-          {/* Email */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(212, 175, 55, 0.1)",
-              border: "1px solid rgba(212, 175, 55, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <EmailIcon sx={{ fontSize: 16, color: "#d4af37" }} />
-              Email
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.email}
-            </Typography>
-          </Box>
-
-          {/* Phone */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(212, 175, 55, 0.1)",
-              border: "1px solid rgba(212, 175, 55, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <PhoneIcon sx={{ fontSize: 16, color: "#d4af37" }} />
-              Phone Number
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.phone || "Not provided"}
-            </Typography>
-          </Box>
-
-          {/* Role */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(212, 175, 55, 0.1)",
-              border: "1px solid rgba(212, 175, 55, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <WorkIcon sx={{ fontSize: 16, color: "#d4af37" }} />
-              Role
-            </Typography>
+      <DialogContent sx={{ p: 3 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <Field icon={<PersonIcon sx={{ fontSize: 16 }} />} label="Nickname">
+            <Typography fontWeight={600}>{currentUser?.nickname}</Typography>
+          </Field>
+          <Field icon={<PhoneIcon sx={{ fontSize: 16 }} />} label="Phone">
+            <Typography fontWeight={600}>{currentUser?.phone}</Typography>
+          </Field>
+          {currentUser?.email && (
+            <Field icon={<EmailIcon sx={{ fontSize: 16 }} />} label="Email">
+              <Typography fontWeight={600}>{currentUser.email}</Typography>
+            </Field>
+          )}
+          <Field icon={<ShieldIcon sx={{ fontSize: 16 }} />} label="Role">
             <Chip
-              label={
-                currentUser?.role?.charAt(0).toUpperCase() +
-                currentUser?.role?.slice(1)
-              }
-              color="primary"
-              variant="outlined"
-              sx={{ fontWeight: 600 }}
+              size="small"
+              label={currentUser?.role}
+              sx={{ textTransform: "capitalize", fontWeight: 700 }}
+              color={currentUser?.role === "superadmin" ? "secondary" : "primary"}
             />
-          </Box>
-
-          {/* Status */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(212, 175, 55, 0.1)",
-              border: "1px solid rgba(212, 175, 55, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              Status
-            </Typography>
-            <Chip
-              icon={
-                currentUser?.isActive !== false ? (
-                  <CheckCircleIcon />
-                ) : (
-                  <CancelIcon />
-                )
-              }
-              label={currentUser?.isActive !== false ? "Active" : "Inactive"}
-              color={currentUser?.isActive !== false ? "success" : "error"}
-              variant="filled"
-              sx={{ fontWeight: 600 }}
-            />
-          </Box>
-
-          {/* Last Login */}
-          <Box
-            sx={{
-              p: 2,
-              backgroundColor: "white",
-              borderRadius: 2,
-              boxShadow: "0 2px 8px rgba(212, 175, 55, 0.1)",
-              border: "1px solid rgba(212, 175, 55, 0.2)",
-            }}
-          >
-            <Typography
-              variant="subtitle2"
-              sx={{
-                color: "text.secondary",
-                mb: 1,
-                fontSize: "0.8rem",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <LoginIcon sx={{ fontSize: 16, color: "#d4af37" }} />
-              Last Login
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ fontWeight: 500, color: "text.primary" }}
-            >
-              {currentUser?.lastLogin
-                ? new Date(currentUser.lastLogin).toLocaleString()
-                : "Current Session"}
-            </Typography>
-          </Box>
+          </Field>
         </Box>
       </DialogContent>
     </Dialog>
