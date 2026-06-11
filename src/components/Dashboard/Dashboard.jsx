@@ -316,12 +316,15 @@ export default function Dashboard() {
           </Grid>
           <Grid size={{ xs: 6, sm: 4, lg: 2.4 }}>
             <StatCard
-              label="Players per match"
-              value={config.matchRequiredPlayers}
-              sub="Room size before auto-start"
+              label="Room size"
+              value={
+                config.playerLimits?.max
+                  ? `${config.playerLimits?.min ?? 2}–${config.playerLimits.max}`
+                  : `${config.playerLimits?.min ?? 2}+`
+              }
+              sub="Set by host on Play (no fixed cap)"
               icon={Groups}
               color="#C4B5FD"
-              href="/settings"
             />
           </Grid>
         </Grid>

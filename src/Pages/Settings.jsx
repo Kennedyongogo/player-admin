@@ -22,8 +22,6 @@ import {
   changeMyPassword,
   saveAdminSession,
   clearAdminSession,
-  fetchPlatformConfig,
-  updatePlatformConfig,
 } from "../api";
 
 const swalTheme = {
@@ -92,11 +90,6 @@ export default function Settings({ user, setUser }) {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const [matchRequiredPlayers, setMatchRequiredPlayers] = useState("10");
-  const [platformLoading, setPlatformLoading] = useState(false);
-  const [platformSaving, setPlatformSaving] = useState(false);
-  const [platformError, setPlatformError] = useState("");
-
   const isSuperAdmin = role === "superadmin";
 
   const applyUser = (u) => {
@@ -129,49 +122,6 @@ export default function Settings({ user, setUser }) {
       })
       .finally(() => setLoading(false));
   }, []);
-
-  useEffect(() => {
-    if (!user && loading) return;
-    setPlatformLoading(true);
-    fetchPlatformConfig()
-      .then((res) => {
-        const value = res.data?.matchRequiredPlayers;
-        if (value != null) setMatchRequiredPlayers(String(value));
-      })
-      .catch(() => {
-        setPlatformError("Could not load match settings.");
-      })
-      .finally(() => setPlatformLoading(false));
-  }, [user, loading]);
-
-  const handlePlatformSave = async (e) => {
-    e.preventDefault();
-    setPlatformError("");
-
-    const value = parseInt(matchRequiredPlayers, 10);
-    if (!Number.isFinite(value) || value < 2 || value > 100) {
-      setPlatformError("Players per match must be between 2 and 100.");
-      return;
-    }
-
-    setPlatformSaving(true);
-    try {
-      const res = await updatePlatformConfig({ matchRequiredPlayers: value });
-      setMatchRequiredPlayers(String(res.data?.matchRequiredPlayers ?? value));
-      await Swal.fire({
-        icon: "success",
-        title: "Match settings saved",
-        text: "New matches will use this player count. Matches already waiting keep their original size.",
-        ...swalTheme,
-      });
-    } catch (err) {
-      const message = err.message || "Failed to update match settings";
-      setPlatformError(message);
-      await Swal.fire({ icon: "error", title: "Save failed", text: message, ...swalTheme });
-    } finally {
-      setPlatformSaving(false);
-    }
-  };
 
   const handleProfileSave = async (e) => {
     e.preventDefault();
@@ -399,63 +349,6 @@ export default function Settings({ user, setUser }) {
             </CardContent>
           </Card>
         </Box>
-      )}
-
-      {!loading && (
-        <Card
-          sx={{
-            mt: 3,
-            borderRadius: 3,
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <CardContent>
-            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-              <Typography variant="h6" fontWeight={700}>
-                Match rules
-              </Typography>
-              {!isSuperAdmin && (
-                <Chip size="small" label="View only" sx={{ fontWeight: 600 }} />
-              )}
-            </Stack>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              How many players must join before a match auto-starts. Applies to new public and private
-              matches only — waiting matches already created keep their original size.
-            </Typography>
-
-            {platformLoading ? (
-              <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-                <CircularProgress size={28} sx={{ color: "#8B5CF6" }} />
-              </Box>
-            ) : (
-              <Box
-                component="form"
-                onSubmit={handlePlatformSave}
-                sx={{ maxWidth: 360 }}
-              >
-                <Stack spacing={2}>
-                  {platformError && <Alert severity="error">{platformError}</Alert>}
-                  <TextField
-                    label="Players per match"
-                    type="number"
-                    value={matchRequiredPlayers}
-                    onChange={(e) => setMatchRequiredPlayers(e.target.value)}
-                    inputProps={{ min: 2, max: 100, step: 1 }}
-                    fullWidth
-                    required
-                    disabled={!isSuperAdmin}
-                    helperText="Between 2 and 100 players"
-                  />
-                  {isSuperAdmin && (
-                    <Button type="submit" variant="contained" disabled={platformSaving}>
-                      {platformSaving ? "Saving…" : "Save match rules"}
-                    </Button>
-                  )}
-                </Stack>
-              </Box>
-            )}
-          </CardContent>
-        </Card>
       )}
     </Box>
   );
