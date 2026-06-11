@@ -122,6 +122,17 @@ export const fetchMatches = ({ page = 1, limit = 20, search = "", status = "all"
   return adminRequest(`/api/admin/matches?${params}`);
 };
 
+export const fetchFinance = ({ page = 1, limit = 20, type = "all", status = "all", search = "" } = {}) => {
+  const params = new URLSearchParams();
+  params.set("page", String(page));
+  params.set("limit", String(limit));
+  if (type && type !== "all") params.set("type", type);
+  if (status && status !== "all") params.set("status", status);
+  const q = String(search || "").trim();
+  if (q) params.set("search", q);
+  return adminRequest(`/api/admin/finance?${params}`);
+};
+
 export const fetchPlatformConfig = () => adminRequest("/api/admin/platform-config");
 
 export const updatePlatformConfig = (body) =>

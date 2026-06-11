@@ -7,6 +7,7 @@ import Users from "./Users/Users";
 import Matches from "./Matches/Matches";
 import Questions from "./Questions/Questions";
 import Settings from "../Pages/Settings";
+import Finance from "./Finance/Finance";
 import NotFound from "../Pages/NotFound";
 
 export default function PageRoutes() {
@@ -53,6 +54,7 @@ export default function PageRoutes() {
             <Route path="/questions" element={<Questions />} />
             <Route path="/matches" element={<Matches />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/finance" element={<Finance />} />
             <Route path="/settings" element={<Settings user={user} setUser={setUser} />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
