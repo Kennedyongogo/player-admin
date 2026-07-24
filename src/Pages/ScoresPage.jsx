@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   FormControl,
@@ -18,6 +17,7 @@ import {
 } from "@mui/material";
 import { getScores, getTeams, getTournaments, submitScore, syncOverstat } from "../api";
 import { colors } from "../theme";
+import { showError, showSuccess } from "../utils/swal";
 
 export default function ScoresPage() {
   const [tournaments, setTournaments] = useState([]);
@@ -32,8 +32,6 @@ export default function ScoresPage() {
     killPoints: 0,
     placementPoints: 0,
   });
-  const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     Promise.all([getTournaments({ limit: 100 }), getTeams({ limit: 100 })]).then(([t, teamsRes]) => {
@@ -48,7 +46,7 @@ export default function ScoresPage() {
     if (!tournamentId) return;
     getScores({ tournamentId })
       .then((res) => setScores(res.data?.scores || []))
-      .catch((err) => setError(err.message));
+      .catch((err) => showError("Failed to load scores", err.message));
   };
 
   useEffect(() => {
@@ -56,6 +54,10 @@ export default function ScoresPage() {
   }, [tournamentId]);
 
   const onSubmit = async () => {
+    if (!form.teamId) {
+      showError("Team required", "Select a team before submitting");
+      return;
+    }
     try {
       await submitScore({
         tournamentId,
@@ -67,10 +69,19 @@ export default function ScoresPage() {
         placementPoints: Number(form.placementPoints),
         totalPoints: Number(form.killPoints) + Number(form.placementPoints),
       });
-      setMsg("Score submitted");
+      showSuccess("Score submitted");
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
+    }
+  };
+
+  const onSyncOverstat = async () => {
+    try {
+      const r = await syncOverstat(tournamentId);
+      showSuccess("Overstat sync", r.message);
+    } catch (err) {
+      showError("Sync failed", err.message);
     }
   };
 
@@ -82,16 +93,6 @@ export default function ScoresPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Manual entry now — Overstat sync in Phase 3
       </Typography>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
         <FormControl sx={{ minWidth: 240 }}>
@@ -104,7 +105,7 @@ export default function ScoresPage() {
             ))}
           </Select>
         </FormControl>
-        <Button variant="outlined" onClick={() => syncOverstat(tournamentId).then((r) => setMsg(r.message))}>
+        <Button variant="outlined" onClick={onSyncOverstat}>
           Sync Overstat
         </Button>
       </Stack>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   FormControl,
@@ -18,6 +17,7 @@ import {
 } from "@mui/material";
 import { getLeaderboards, getTeams, getTournaments, upsertLeaderboardEntry } from "../api";
 import { colors } from "../theme";
+import { showError, showSuccess } from "../utils/swal";
 
 export default function LeaderboardsPage() {
   const [type, setType] = useState("weekly");
@@ -33,13 +33,11 @@ export default function LeaderboardsPage() {
     totalPoints: 0,
     averagePoints: 0,
   });
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
 
   const load = () =>
     getLeaderboards({ type, limit: 100 })
       .then((res) => setEntries(res.data?.entries || []))
-      .catch((err) => setError(err.message));
+      .catch((err) => showError("Failed to load leaderboard", err.message));
 
   useEffect(() => {
     load();
@@ -53,6 +51,10 @@ export default function LeaderboardsPage() {
   }, []);
 
   const onUpsert = async () => {
+    if (!form.teamId) {
+      showError("Team required", "Select a team before saving");
+      return;
+    }
     try {
       await upsertLeaderboardEntry({
         type,
@@ -64,10 +66,10 @@ export default function LeaderboardsPage() {
         totalPoints: Number(form.totalPoints),
         averagePoints: Number(form.averagePoints),
       });
-      setMsg("Leaderboard entry saved");
+      showSuccess("Leaderboard entry saved");
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -79,16 +81,6 @@ export default function LeaderboardsPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Manage ranking entries shown on the public portal
       </Typography>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
 
       <FormControl sx={{ mb: 2, minWidth: 180 }}>
         <InputLabel>Type</InputLabel>

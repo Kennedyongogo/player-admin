@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   FormControl,
@@ -19,14 +18,13 @@ import {
 import { getTournaments, getRegistrations, reviewRegistration } from "../api";
 import StatusBadge from "../components/StatusBadge";
 import { colors } from "../theme";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 export default function RegistrationsPage() {
   const [tournaments, setTournaments] = useState([]);
   const [tournamentId, setTournamentId] = useState("");
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("pending");
-  const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
   const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
@@ -36,30 +34,39 @@ export default function RegistrationsPage() {
         setTournaments(list);
         if (list[0]) setTournamentId(list[0].id);
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => showError("Failed to load tournaments", err.message));
   }, []);
 
   const load = () => {
     if (!tournamentId) return;
     getRegistrations(tournamentId, { status, limit: 100 })
       .then((res) => setItems(res.data?.registrations || []))
-      .catch((err) => setError(err.message));
+      .catch((err) => showError("Failed to load registrations", err.message));
   };
 
   useEffect(() => {
     load();
   }, [tournamentId, status]);
 
-  const review = async (id, nextStatus) => {
+  const review = async (registration, nextStatus) => {
+    if (nextStatus === "rejected") {
+      const reason = rejectReason || "Does not meet requirements";
+      const ok = await showConfirm(
+        "Reject registration?",
+        `Reject ${registration.Team?.name}? Reason: ${reason}`,
+        "Reject"
+      );
+      if (!ok) return;
+    }
     try {
-      await reviewRegistration(id, {
+      await reviewRegistration(registration.id, {
         status: nextStatus,
         rejectionReason: nextStatus === "rejected" ? rejectReason || "Does not meet requirements" : undefined,
       });
-      setMsg(`Registration ${nextStatus}`);
+      showSuccess(`Registration ${nextStatus}`);
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -71,16 +78,6 @@ export default function RegistrationsPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Approve or reject team tournament entries
       </Typography>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
         <FormControl sx={{ minWidth: 260 }}>
           <InputLabel>Tournament</InputLabel>
@@ -135,10 +132,10 @@ export default function RegistrationsPage() {
                 <TableCell align="right">
                   {r.status === "pending" && (
                     <>
-                      <Button size="small" color="success" onClick={() => review(r.id, "approved")}>
+                      <Button size="small" color="success" onClick={() => review(r, "approved")}>
                         Approve
                       </Button>
-                      <Button size="small" color="error" onClick={() => review(r.id, "rejected")}>
+                      <Button size="small" color="error" onClick={() => review(r, "rejected")}>
                         Reject
                       </Button>
                     </>

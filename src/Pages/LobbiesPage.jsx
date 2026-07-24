@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -27,6 +26,7 @@ import {
 } from "../api";
 import StatusBadge from "../components/StatusBadge";
 import { colors } from "../theme";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 export default function LobbiesPage() {
   const [tournaments, setTournaments] = useState([]);
@@ -34,8 +34,6 @@ export default function LobbiesPage() {
   const [lobbies, setLobbies] = useState([]);
   const [approvedTeams, setApprovedTeams] = useState([]);
   const [name, setName] = useState("Lobby A");
-  const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
 
   useEffect(() => {
     getTournaments({ limit: 100 }).then((res) => {
@@ -55,7 +53,7 @@ export default function LobbiesPage() {
       setLobbies(lRes.data?.lobbies || []);
       setApprovedTeams((rRes.data?.registrations || []).map((r) => r.Team).filter(Boolean));
     } catch (err) {
-      setError(err.message);
+      showError("Failed to load lobbies", err.message);
     }
   };
 
@@ -64,12 +62,68 @@ export default function LobbiesPage() {
   }, [tournamentId]);
 
   const onCreate = async () => {
+    if (!name.trim()) {
+      showError("Name required", "Enter a lobby name");
+      return;
+    }
     try {
       await createLobby(tournamentId, { name, maxTeams: 20 });
-      setMsg("Lobby created");
+      showSuccess("Lobby created");
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
+    }
+  };
+
+  const onRegenCodes = async (lobbyId) => {
+    try {
+      await regenerateLobbyCodes(lobbyId);
+      showSuccess("Codes regenerated");
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const onLock = async (lobbyId) => {
+    try {
+      await lockLobby(lobbyId);
+      showSuccess("Lobby locked");
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const onStart = async (lobbyId) => {
+    try {
+      await startLobby(lobbyId);
+      showSuccess("Lobby started");
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const onClose = async (lobby) => {
+    const ok = await showConfirm("Close lobby?", `Close ${lobby.name}? Teams will no longer be able to join.`, "Close");
+    if (!ok) return;
+    try {
+      await closeLobby(lobby.id);
+      showSuccess("Lobby closed");
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const onAssignTeam = async (lobbyId, teamId) => {
+    try {
+      await assignLobbyTeam(lobbyId, { teamId });
+      showSuccess("Team assigned");
+      load();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -81,16 +135,6 @@ export default function LobbiesPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Assign teams and generate player / admin codes
       </Typography>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 3 }}>
         <FormControl sx={{ minWidth: 260 }}>
@@ -122,16 +166,16 @@ export default function LobbiesPage() {
                   Admin code: <strong>{lobby.adminCode || "—"}</strong>
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
-                  <Button size="small" onClick={() => regenerateLobbyCodes(lobby.id).then(load)}>
+                  <Button size="small" onClick={() => onRegenCodes(lobby.id)}>
                     Regen codes
                   </Button>
-                  <Button size="small" onClick={() => lockLobby(lobby.id).then(load)}>
+                  <Button size="small" onClick={() => onLock(lobby.id)}>
                     Lock
                   </Button>
-                  <Button size="small" onClick={() => startLobby(lobby.id).then(load)}>
+                  <Button size="small" onClick={() => onStart(lobby.id)}>
                     Start
                   </Button>
-                  <Button size="small" color="warning" onClick={() => closeLobby(lobby.id).then(load)}>
+                  <Button size="small" color="warning" onClick={() => onClose(lobby)}>
                     Close
                   </Button>
                 </Stack>
@@ -170,15 +214,7 @@ export default function LobbiesPage() {
                   <Select
                     label="Assign approved team"
                     value=""
-                    onChange={async (e) => {
-                      try {
-                        await assignLobbyTeam(lobby.id, { teamId: e.target.value });
-                        setMsg("Team assigned");
-                        load();
-                      } catch (err) {
-                        setError(err.message);
-                      }
-                    }}
+                    onChange={(e) => onAssignTeam(lobby.id, e.target.value)}
                   >
                     {approvedTeams.map((t) => (
                       <MenuItem key={t.id} value={t.id}>

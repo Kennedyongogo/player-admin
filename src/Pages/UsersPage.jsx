@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   FormControl,
@@ -18,6 +17,7 @@ import {
 } from "@mui/material";
 import { getUsers, updateUser } from "../api";
 import { colors } from "../theme";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 const ROLES = ["player", "host", "tournament_admin", "superadmin"];
 
@@ -25,13 +25,11 @@ export default function UsersPage() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
 
   const load = () =>
     getUsers({ search, role, limit: 100 })
       .then((res) => setItems(res.data?.users || []))
-      .catch((err) => setError(err.message));
+      .catch((err) => showError("Failed to load users", err.message));
 
   useEffect(() => {
     load();
@@ -40,19 +38,24 @@ export default function UsersPage() {
   const setUserRole = async (id, nextRole) => {
     try {
       await updateUser(id, { role: nextRole });
-      setMsg("Role updated");
+      showSuccess("Role updated");
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
   const toggleActive = async (u) => {
+    if (u.isActive) {
+      const ok = await showConfirm("Disable user?", `Disable ${u.username}?`);
+      if (!ok) return;
+    }
     try {
       await updateUser(u.id, { isActive: !u.isActive });
+      showSuccess(u.isActive ? "User disabled" : "User enabled");
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -64,16 +67,6 @@ export default function UsersPage() {
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Manage roles and account status
       </Typography>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }}>
         <TextField placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} fullWidth />
         <FormControl sx={{ minWidth: 180 }}>

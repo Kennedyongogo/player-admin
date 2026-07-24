@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -22,6 +21,7 @@ import {
 } from "@mui/material";
 import { createSponsor, getSponsors, updateSponsor } from "../api";
 import { colors } from "../theme";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 const TIERS = ["title", "gold", "silver", "bronze", "partner"];
 
@@ -29,23 +29,39 @@ export default function SponsorsPage() {
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", tier: "partner", websiteUrl: "", description: "", isFeatured: true });
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
 
   const load = () => getSponsors().then((res) => setItems(res.data?.sponsors || []));
 
   useEffect(() => {
-    load().catch((err) => setError(err.message));
+    load().catch((err) => showError("Failed to load sponsors", err.message));
   }, []);
 
   const onCreate = async () => {
+    if (!form.name.trim()) {
+      showError("Name required", "Enter a sponsor name");
+      return;
+    }
     try {
       await createSponsor(form);
-      setMsg("Sponsor created");
+      showSuccess("Sponsor created");
       setOpen(false);
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
+    }
+  };
+
+  const toggleActive = async (s) => {
+    if (s.isActive) {
+      const ok = await showConfirm("Disable sponsor?", `Disable ${s.name}?`);
+      if (!ok) return;
+    }
+    try {
+      await updateSponsor(s.id, { isActive: !s.isActive });
+      showSuccess(s.isActive ? "Sponsor disabled" : "Sponsor enabled");
+      load();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -60,16 +76,6 @@ export default function SponsorsPage() {
           + Add sponsor
         </Button>
       </Stack>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
       <Box sx={{ border: `1px solid ${colors.border}`, borderRadius: 3, overflow: "auto", bgcolor: colors.surface }}>
         <Table size="small">
           <TableHead>
@@ -91,10 +97,7 @@ export default function SponsorsPage() {
                 <TableCell>{s.isActive ? "Yes" : "No"}</TableCell>
                 <TableCell>{s.clickCount}</TableCell>
                 <TableCell align="right">
-                  <Button
-                    size="small"
-                    onClick={() => updateSponsor(s.id, { isActive: !s.isActive }).then(load)}
-                  >
+                  <Button size="small" onClick={() => toggleActive(s)}>
                     {s.isActive ? "Disable" : "Enable"}
                   </Button>
                 </TableCell>

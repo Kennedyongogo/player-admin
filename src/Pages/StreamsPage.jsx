@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -22,6 +21,7 @@ import {
 } from "@mui/material";
 import { createStream, getStreams, updateStream } from "../api";
 import { colors } from "../theme";
+import { showError, showSuccess } from "../utils/swal";
 
 export default function StreamsPage() {
   const [items, setItems] = useState([]);
@@ -33,23 +33,34 @@ export default function StreamsPage() {
     isLive: false,
     isFeatured: true,
   });
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
 
   const load = () => getStreams().then((res) => setItems(res.data?.streams || []));
 
   useEffect(() => {
-    load().catch((err) => setError(err.message));
+    load().catch((err) => showError("Failed to load streams", err.message));
   }, []);
 
   const onCreate = async () => {
+    if (!form.title.trim() || !form.channelUrl.trim()) {
+      showError("Missing fields", "Title and channel URL are required");
+      return;
+    }
     try {
       await createStream(form);
-      setMsg("Stream added");
+      showSuccess("Stream added");
       setOpen(false);
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
+    }
+  };
+
+  const toggleLive = async (s) => {
+    try {
+      await updateStream(s.id, { isLive: !s.isLive });
+      load();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -64,16 +75,6 @@ export default function StreamsPage() {
           + Add stream
         </Button>
       </Stack>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
       <Box sx={{ border: `1px solid ${colors.border}`, borderRadius: 3, overflow: "auto", bgcolor: colors.surface }}>
         <Table size="small">
           <TableHead>
@@ -93,7 +94,7 @@ export default function StreamsPage() {
                 <TableCell>{s.isLive ? "Yes" : "No"}</TableCell>
                 <TableCell>{s.isFeatured ? "Yes" : "No"}</TableCell>
                 <TableCell align="right">
-                  <Button size="small" onClick={() => updateStream(s.id, { isLive: !s.isLive }).then(load)}>
+                  <Button size="small" onClick={() => toggleLive(s)}>
                     Toggle live
                   </Button>
                 </TableCell>

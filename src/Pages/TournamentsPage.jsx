@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -30,6 +29,7 @@ import {
 import { REGIONS, formatCategory, formatDate, formatPrize } from "../constants";
 import StatusBadge from "../components/StatusBadge";
 import { colors } from "../theme";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 const CATEGORIES = [
   "challenger_circuit",
@@ -45,8 +45,6 @@ const STATUSES = ["draft", "open", "registration_closed", "live", "completed", "
 
 export default function TournamentsPage() {
   const [items, setItems] = useState([]);
-  const [error, setError] = useState("");
-  const [msg, setMsg] = useState("");
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({
@@ -68,14 +66,17 @@ export default function TournamentsPage() {
   const load = () =>
     getTournaments({ limit: 100 })
       .then((res) => setItems(res.data?.tournaments || []))
-      .catch((err) => setError(err.message));
+      .catch((err) => showError("Failed to load tournaments", err.message));
 
   useEffect(() => {
     load();
   }, []);
 
   const onCreate = async () => {
-    setError("");
+    if (!form.name.trim()) {
+      showError("Name required", "Enter a tournament name");
+      return;
+    }
     try {
       await createTournament({
         ...form,
@@ -84,11 +85,11 @@ export default function TournamentsPage() {
         startsAt: form.startsAt || null,
         registrationClosesAt: form.registrationClosesAt || null,
       });
-      setMsg("Tournament created");
+      showSuccess("Tournament created");
       setOpen(false);
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
     }
   };
 
@@ -103,11 +104,23 @@ export default function TournamentsPage() {
         overstatCode: edit.overstatCode,
         description: edit.description,
       });
-      setMsg("Tournament updated");
+      showSuccess("Tournament updated");
       setEdit(null);
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
+    }
+  };
+
+  const onArchive = async (t) => {
+    const ok = await showConfirm("Archive tournament?", `Archive "${t.name}"?`, "Archive");
+    if (!ok) return;
+    try {
+      await archiveTournament(t.id);
+      showSuccess("Tournament archived");
+      load();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -122,16 +135,6 @@ export default function TournamentsPage() {
           + Create tournament
         </Button>
       </Stack>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
 
       <Box sx={{ border: `1px solid ${colors.border}`, borderRadius: 3, overflow: "auto", bgcolor: colors.surface }}>
         <Table size="small">
@@ -164,7 +167,7 @@ export default function TournamentsPage() {
                   <Button size="small" onClick={() => setEdit(t)}>
                     Edit
                   </Button>
-                  <Button size="small" color="warning" onClick={() => archiveTournament(t.id).then(load)}>
+                  <Button size="small" color="warning" onClick={() => onArchive(t)}>
                     Archive
                   </Button>
                 </TableCell>

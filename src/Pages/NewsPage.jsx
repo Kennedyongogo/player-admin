@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -18,6 +17,7 @@ import {
 } from "@mui/material";
 import { createNews, getNews, updateNews } from "../api";
 import { colors } from "../theme";
+import { showError, showSuccess } from "../utils/swal";
 
 export default function NewsPage() {
   const [items, setItems] = useState([]);
@@ -30,23 +30,34 @@ export default function NewsPage() {
     isPublished: true,
     isFeatured: false,
   });
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
 
   const load = () => getNews({ limit: 50 }).then((res) => setItems(res.data?.articles || []));
 
   useEffect(() => {
-    load().catch((err) => setError(err.message));
+    load().catch((err) => showError("Failed to load news", err.message));
   }, []);
 
   const onCreate = async () => {
+    if (!form.title.trim() || !form.content.trim()) {
+      showError("Missing fields", "Title and content are required");
+      return;
+    }
     try {
       await createNews(form);
-      setMsg("Article published");
+      showSuccess("Article published");
       setOpen(false);
       load();
     } catch (err) {
-      setError(err.message);
+      showError(err.message);
+    }
+  };
+
+  const toggleFeatured = async (a) => {
+    try {
+      await updateNews(a.id, { isFeatured: !a.isFeatured });
+      load();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -61,16 +72,6 @@ export default function NewsPage() {
           + New article
         </Button>
       </Stack>
-      {msg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMsg("")}>
-          {msg}
-        </Alert>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-          {error}
-        </Alert>
-      )}
       <Box sx={{ border: `1px solid ${colors.border}`, borderRadius: 3, overflow: "auto", bgcolor: colors.surface }}>
         <Table size="small">
           <TableHead>
@@ -90,10 +91,7 @@ export default function NewsPage() {
                 <TableCell>{a.isPublished ? "Yes" : "No"}</TableCell>
                 <TableCell>{a.isFeatured ? "Yes" : "No"}</TableCell>
                 <TableCell align="right">
-                  <Button
-                    size="small"
-                    onClick={() => updateNews(a.id, { isFeatured: !a.isFeatured }).then(load)}
-                  >
+                  <Button size="small" onClick={() => toggleFeatured(a)}>
                     Toggle featured
                   </Button>
                 </TableCell>

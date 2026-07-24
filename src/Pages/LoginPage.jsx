@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Alert,
   Box,
   Button,
   Card,
@@ -15,27 +14,27 @@ import { adminLogin } from "../api";
 import { useAuth } from "../context/AuthContext";
 import BrandLogo from "../components/BrandLogo";
 import PasswordField from "../components/PasswordField";
+import { showError, showSuccess } from "../utils/swal";
 
 export default function LoginPage() {
   const { loginUser, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
       const res = await adminLogin({ email, password });
+      await showSuccess("Welcome back", `Signed in as ${res.data.user?.username || email}`);
       loginUser({ token: res.data.token, user: res.data.user });
       navigate("/dashboard");
     } catch (err) {
-      setError(err.message || "Admin login failed");
+      await showError("Login failed", err.message || "Admin login failed");
     } finally {
       setLoading(false);
     }
@@ -64,13 +63,15 @@ export default function LoginPage() {
             <Typography color="text.secondary" sx={{ mb: 3 }}>
               Tournament operations, lobbies, and platform control.
             </Typography>
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )}
             <Stack component="form" spacing={2} onSubmit={onSubmit}>
-              <TextField label="Email" type="email" required fullWidth value={email} onChange={(e) => setEmail(e.target.value)} />
+              <TextField
+                label="Email"
+                type="email"
+                required
+                fullWidth
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
               <PasswordField
                 label="Password"
                 required
