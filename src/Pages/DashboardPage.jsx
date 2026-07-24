@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react";
-import { Alert, Box, Card, CardContent, Grid, Stack, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, Stack, Typography } from "@mui/material";
+import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import EmojiEventsOutlinedIcon from "@mui/icons-material/EmojiEventsOutlined";
+import HowToRegOutlinedIcon from "@mui/icons-material/HowToRegOutlined";
+import MeetingRoomOutlinedIcon from "@mui/icons-material/MeetingRoomOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
 import { Link as RouterLink } from "react-router-dom";
 import { getDashboard } from "../api";
 import StatusBadge from "../components/StatusBadge";
 import { colors } from "../theme";
+
+const KPI = [
+  { key: "totalPlayers", label: "Players", to: "/users", icon: PeopleOutlinedIcon, accent: colors.primaryLight },
+  { key: "totalTeams", label: "Teams", to: "/teams", icon: GroupsOutlinedIcon, accent: colors.cyan },
+  { key: "activeTournaments", label: "Active tournaments", to: "/tournaments", icon: EmojiEventsOutlinedIcon, accent: colors.warning },
+  { key: "pendingRegistrations", label: "Pending regs", to: "/registrations", icon: HowToRegOutlinedIcon, accent: colors.accent },
+  { key: "liveLobbies", label: "Live lobbies", to: "/lobbies", icon: MeetingRoomOutlinedIcon, accent: colors.danger },
+  { key: "activeSponsors", label: "Sponsors", to: "/sponsors", icon: CampaignOutlinedIcon, accent: colors.success },
+];
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
@@ -22,7 +37,7 @@ export default function DashboardPage() {
       <Typography variant="h4" sx={{ mb: 0.5 }}>
         Dashboard
       </Typography>
-      <Typography color="text.secondary" sx={{ mb: 3 }}>
+      <Typography color="text.secondary" sx={{ mb: 2.5 }}>
         Live platform overview
       </Typography>
       {error && (
@@ -30,29 +45,111 @@ export default function DashboardPage() {
           {error}
         </Alert>
       )}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {[
-          ["Players", kpis.totalPlayers ?? "—"],
-          ["Teams", kpis.totalTeams ?? "—"],
-          ["Active tournaments", kpis.activeTournaments ?? "—"],
-          ["Pending regs", kpis.pendingRegistrations ?? "—"],
-          ["Live lobbies", kpis.liveLobbies ?? "—"],
-          ["Sponsors", kpis.activeSponsors ?? "—"],
-        ].map(([label, value]) => (
-          <Grid item xs={6} md={4} lg={2} key={label}>
-            <Card>
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">
-                  {label}
-                </Typography>
-                <Typography sx={{ fontFamily: "Orbitron, sans-serif", fontWeight: 700, fontSize: "1.4rem" }}>
+
+      {/* Edge-to-edge: 6-up on large, 2-per-row on small */}
+      <Box
+        sx={{
+          mx: { xs: -2, md: -3 },
+          mb: 3,
+          px: { xs: 1.5, md: 2 },
+          py: { xs: 1.5, md: 2 },
+          bgcolor: colors.surface,
+          borderTop: `1px solid ${colors.border}`,
+          borderBottom: `1px solid ${colors.border}`,
+          backgroundImage: `
+            linear-gradient(180deg, rgba(124,58,237,0.1), transparent 70%),
+            linear-gradient(90deg, rgba(0,194,255,0.05), transparent 40%)
+          `,
+        }}
+      >
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr 1fr",
+              md: "repeat(6, 1fr)",
+            },
+            gap: { xs: 1.5, md: 1.5 },
+            width: "100%",
+          }}
+        >
+          {KPI.map((item) => {
+            const Icon = item.icon;
+            const value = kpis[item.key] ?? "—";
+
+            return (
+              <Box
+                key={item.key}
+                component={RouterLink}
+                to={item.to}
+                sx={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  px: { xs: 1.5, md: 1.75 },
+                  py: { xs: 1.75, md: 2 },
+                  minHeight: { xs: 92, md: 100 },
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: 1,
+                  borderRadius: 2.5,
+                  border: `1px solid ${colors.border}`,
+                  bgcolor: colors.elevated,
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
+                  "&:hover": {
+                    bgcolor: "rgba(124,58,237,0.14)",
+                    borderColor: "rgba(124,58,237,0.45)",
+                  },
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={0.75}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: "text.secondary",
+                      fontWeight: 600,
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                      fontSize: { xs: "0.6rem", md: "0.65rem" },
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {item.label}
+                  </Typography>
+                  <Box
+                    sx={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 1.25,
+                      display: "grid",
+                      placeItems: "center",
+                      bgcolor: "rgba(255,255,255,0.04)",
+                      color: item.accent,
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon sx={{ fontSize: 15 }} />
+                  </Box>
+                </Stack>
+                <Typography
+                  sx={{
+                    fontFamily: "Orbitron, sans-serif",
+                    fontWeight: 800,
+                    fontSize: { xs: "1.5rem", md: "1.65rem" },
+                    lineHeight: 1,
+                    letterSpacing: "-0.03em",
+                    background: `linear-gradient(180deg, #fff 30%, ${item.accent})`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
                   {value}
                 </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
 
       <Card>
         <CardContent>
