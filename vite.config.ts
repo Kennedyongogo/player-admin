@@ -3,99 +3,41 @@ import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
 
-// https://vitejs.dev/config/
 export default defineConfig({
   base: "/",
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Separate date picker into its own chunk
-          'date-pickers': ['@mui/x-date-pickers'],
-          // Separate MUI components
-          'mui-core': ['@mui/material', '@mui/icons-material'],
-          // Separate animation library
-          'framer-motion': ['framer-motion'],
-        },
-      },
-    },
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
-  },
   plugins: [
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      devOptions: {
-        enabled: true, // so updates work during dev too
-      },
+      devOptions: { enabled: true },
       workbox: {
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         cleanupOutdatedCaches: true,
       },
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
+      includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "ChapaQuiz Admin",
-        short_name: "CQ Admin",
-        description: "ChapaQuiz admin — questions, matches, wallet & withdrawals",
-        theme_color: "#050508",
+        name: "Battlegrounds HQ Admin",
+        short_name: "BGHQ Admin",
+        description: "Admin portal for APAC South tournaments",
+        theme_color: "#000000",
+        background_color: "#000000",
         icons: [
-          {
-            src: "favicon-16x16.png",
-            sizes: "16x16",
-            type: "image/png",
-          },
-          {
-            src: "favicon-32x32.png",
-            sizes: "32x32",
-            type: "image/png",
-          },
-          {
-            src: "apple-touch-icon.png",
-            sizes: "180x180",
-            type: "image/png",
-          },
+          { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png" },
         ],
       },
     }),
     svgr(),
   ],
-  test: {
-    globals: true,
-    environment: "jsdom",
-    setupFiles: "./src/setupTests.ts",
-    css: true,
-    reporters: ["verbose"],
-    coverage: {
-      reporter: ["text", "json", "html"],
-      include: ["src/**/*"],
-      exclude: [],
-    },
-  },
   server: {
-    port: 3000,
+    port: 5175,
     host: true,
-    open: true,
-    hmr: {
-      overlay: false,
-    },
+    open: false,
+    strictPort: true,
+    hmr: { overlay: false },
     proxy: {
-      "/api": {
-        target: "http://localhost:4000",
-        changeOrigin: true,
-        secure: false,
-      },
-      "/uploads": {
-        target: "http://localhost:4000",
-        changeOrigin: true,
-        secure: false,
-      },
-      "/socket.io": {
-        target: "http://localhost:4000",
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-      },
+      "/api": { target: "http://localhost:4000", changeOrigin: true, secure: false },
+      "/uploads": { target: "http://localhost:4000", changeOrigin: true, secure: false },
     },
   },
 });
