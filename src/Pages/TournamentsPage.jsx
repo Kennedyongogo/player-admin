@@ -7,11 +7,13 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
   Grid,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -42,6 +44,14 @@ const CATEGORIES = [
 ];
 
 const STATUSES = ["draft", "open", "registration_closed", "live", "completed", "archived"];
+
+const toLocalInput = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 export default function TournamentsPage() {
   const [items, setItems] = useState([]);
@@ -99,10 +109,18 @@ export default function TournamentsPage() {
         name: edit.name,
         status: edit.status,
         category: edit.category,
-        prizePool: edit.prizePool,
-        maxTeams: edit.maxTeams,
+        regions: edit.regions,
+        prizePool: Number(edit.prizePool) || 0,
+        maxTeams: edit.maxTeams ? Number(edit.maxTeams) : null,
         overstatCode: edit.overstatCode,
         description: edit.description,
+        bannerUrl: edit.bannerUrl || null,
+        requiresLogo: !!edit.requiresLogo,
+        requireApproval: !!edit.requireApproval,
+        registrationOpensAt: edit.registrationOpensAt || null,
+        registrationClosesAt: edit.registrationClosesAt || null,
+        startsAt: edit.startsAt || null,
+        endsAt: edit.endsAt || null,
       });
       showSuccess("Tournament updated");
       setEdit(null);
@@ -164,7 +182,19 @@ export default function TournamentsPage() {
                 <TableCell>{Number(t.prizePool) > 0 ? formatPrize(t.prizePool, t.currency) : "—"}</TableCell>
                 <TableCell>{formatDate(t.startsAt)}</TableCell>
                 <TableCell align="right">
-                  <Button size="small" onClick={() => setEdit(t)}>
+                  <Button
+                    size="small"
+                    onClick={() =>
+                      setEdit({
+                        ...t,
+                        regions: t.regions || [],
+                        registrationOpensAt: toLocalInput(t.registrationOpensAt),
+                        registrationClosesAt: toLocalInput(t.registrationClosesAt),
+                        startsAt: toLocalInput(t.startsAt),
+                        endsAt: toLocalInput(t.endsAt),
+                      })
+                    }
+                  >
                     Edit
                   </Button>
                   <Button size="small" color="warning" onClick={() => onArchive(t)}>
@@ -285,22 +315,126 @@ export default function TournamentsPage() {
           {edit && (
             <Stack spacing={2} sx={{ mt: 1 }}>
               <TextField label="Name" fullWidth value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
+              <Stack direction="row" spacing={2}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select label="Status" value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>
+                    {STATUSES.map((s) => (
+                      <MenuItem key={s} value={s}>
+                        {s}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl fullWidth>
+                  <InputLabel>Category</InputLabel>
+                  <Select label="Category" value={edit.category} onChange={(e) => setEdit({ ...edit, category: e.target.value })}>
+                    {CATEGORIES.map((c) => (
+                      <MenuItem key={c} value={c}>
+                        {formatCategory(c)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
               <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select label="Status" value={edit.status} onChange={(e) => setEdit({ ...edit, status: e.target.value })}>
-                  {STATUSES.map((s) => (
-                    <MenuItem key={s} value={s}>
-                      {s}
+                <InputLabel>Primary region</InputLabel>
+                <Select
+                  label="Primary region"
+                  value={edit.regions?.[0] || ""}
+                  onChange={(e) => setEdit({ ...edit, regions: [e.target.value] })}
+                >
+                  {REGIONS.map((r) => (
+                    <MenuItem key={r} value={r}>
+                      {r}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  label="Prize pool"
+                  type="number"
+                  fullWidth
+                  value={edit.prizePool ?? 0}
+                  onChange={(e) => setEdit({ ...edit, prizePool: e.target.value })}
+                />
+                <TextField
+                  label="Max teams"
+                  type="number"
+                  fullWidth
+                  value={edit.maxTeams ?? ""}
+                  onChange={(e) => setEdit({ ...edit, maxTeams: e.target.value })}
+                />
+              </Stack>
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  label="Registration opens"
+                  type="datetime-local"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  value={edit.registrationOpensAt || ""}
+                  onChange={(e) => setEdit({ ...edit, registrationOpensAt: e.target.value })}
+                />
+                <TextField
+                  label="Registration closes"
+                  type="datetime-local"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  value={edit.registrationClosesAt || ""}
+                  onChange={(e) => setEdit({ ...edit, registrationClosesAt: e.target.value })}
+                />
+              </Stack>
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  label="Starts at"
+                  type="datetime-local"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  value={edit.startsAt || ""}
+                  onChange={(e) => setEdit({ ...edit, startsAt: e.target.value })}
+                />
+                <TextField
+                  label="Ends at"
+                  type="datetime-local"
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  value={edit.endsAt || ""}
+                  onChange={(e) => setEdit({ ...edit, endsAt: e.target.value })}
+                />
+              </Stack>
+              <TextField
+                label="Banner URL"
+                fullWidth
+                value={edit.bannerUrl || ""}
+                onChange={(e) => setEdit({ ...edit, bannerUrl: e.target.value })}
+              />
               <TextField
                 label="Overstat code"
                 fullWidth
                 value={edit.overstatCode || ""}
                 onChange={(e) => setEdit({ ...edit, overstatCode: e.target.value })}
               />
+              <Stack direction="row" spacing={3}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={!!edit.requiresLogo}
+                      onChange={(e) => setEdit({ ...edit, requiresLogo: e.target.checked })}
+                    />
+                  }
+                  label="Requires logo"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={!!edit.requireApproval}
+                      onChange={(e) => setEdit({ ...edit, requireApproval: e.target.checked })}
+                    />
+                  }
+                  label="Requires approval"
+                />
+              </Stack>
               <TextField
                 label="Description"
                 fullWidth

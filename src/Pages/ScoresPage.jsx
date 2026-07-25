@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
@@ -15,15 +19,16 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { getScores, getTeams, getTournaments, submitScore, syncOverstat } from "../api";
+import { deleteScore, getScores, getTeams, getTournaments, submitScore, syncOverstat, updateScore } from "../api";
 import { colors } from "../theme";
-import { showError, showSuccess } from "../utils/swal";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 export default function ScoresPage() {
   const [tournaments, setTournaments] = useState([]);
   const [teams, setTeams] = useState([]);
   const [tournamentId, setTournamentId] = useState("");
   const [scores, setScores] = useState([]);
+  const [edit, setEdit] = useState(null);
   const [form, setForm] = useState({
     teamId: "",
     matchNumber: 1,
@@ -80,8 +85,37 @@ export default function ScoresPage() {
     try {
       const r = await syncOverstat(tournamentId);
       showSuccess("Overstat sync", r.message);
+      load();
     } catch (err) {
       showError("Sync failed", err.message);
+    }
+  };
+
+  const onSaveEdit = async () => {
+    try {
+      await updateScore(edit.id, {
+        placement: Number(edit.placement),
+        kills: Number(edit.kills),
+        killPoints: Number(edit.killPoints),
+        placementPoints: Number(edit.placementPoints),
+      });
+      showSuccess("Score updated");
+      setEdit(null);
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const onDelete = async (s) => {
+    const ok = await showConfirm("Delete score?", `Delete match ${s.matchNumber} score for ${s.Team?.name}?`, "Delete");
+    if (!ok) return;
+    try {
+      await deleteScore(s.id);
+      showSuccess("Score deleted");
+      load();
+    } catch (err) {
+      showError(err.message);
     }
   };
 
@@ -91,7 +125,7 @@ export default function ScoresPage() {
         Live scores
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Manual entry now — Overstat sync in Phase 3
+        Manual entry, or sync from Overstat (accepts optional standings payload)
       </Typography>
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mb: 3 }}>
@@ -152,6 +186,7 @@ export default function ScoresPage() {
               <TableCell>Kill pts</TableCell>
               <TableCell>Place pts</TableCell>
               <TableCell>Total</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -166,11 +201,63 @@ export default function ScoresPage() {
                 <TableCell>
                   <strong>{s.totalPoints}</strong>
                 </TableCell>
+                <TableCell align="right">
+                  <Button size="small" onClick={() => setEdit(s)}>
+                    Edit
+                  </Button>
+                  <Button size="small" color="error" onClick={() => onDelete(s)}>
+                    Delete
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </Box>
+
+      <Dialog open={!!edit} onClose={() => setEdit(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Edit score</DialogTitle>
+        <DialogContent>
+          {edit && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField
+                label="Placement"
+                type="number"
+                fullWidth
+                value={edit.placement}
+                onChange={(e) => setEdit({ ...edit, placement: e.target.value })}
+              />
+              <TextField
+                label="Kills"
+                type="number"
+                fullWidth
+                value={edit.kills}
+                onChange={(e) => setEdit({ ...edit, kills: e.target.value })}
+              />
+              <TextField
+                label="Kill pts"
+                type="number"
+                fullWidth
+                value={edit.killPoints}
+                onChange={(e) => setEdit({ ...edit, killPoints: e.target.value })}
+              />
+              <TextField
+                label="Placement pts"
+                type="number"
+                fullWidth
+                value={edit.placementPoints}
+                onChange={(e) => setEdit({ ...edit, placementPoints: e.target.value })}
+              />
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEdit(null)}>Cancel</Button>
+          <Button variant="contained" onClick={onSaveEdit}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

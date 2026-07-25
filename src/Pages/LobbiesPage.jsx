@@ -22,6 +22,7 @@ import {
   getTournaments,
   lockLobby,
   regenerateLobbyCodes,
+  removeLobbyTeam,
   startLobby,
 } from "../api";
 import StatusBadge from "../components/StatusBadge";
@@ -75,10 +76,22 @@ export default function LobbiesPage() {
     }
   };
 
-  const onRegenCodes = async (lobbyId) => {
+  const onRegenCodes = async (lobbyId, scope) => {
     try {
-      await regenerateLobbyCodes(lobbyId);
-      showSuccess("Codes regenerated");
+      await regenerateLobbyCodes(lobbyId, scope);
+      showSuccess(scope === "admin" ? "Admin code regenerated" : "Player codes regenerated");
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
+  const onRemoveTeam = async (lobby, assignment) => {
+    const ok = await showConfirm("Remove team?", `Remove ${assignment.Team?.name} from ${lobby.name}?`, "Remove");
+    if (!ok) return;
+    try {
+      await removeLobbyTeam(lobby.id, assignment.teamId);
+      showSuccess("Team removed");
       load();
     } catch (err) {
       showError(err.message);
@@ -166,8 +179,11 @@ export default function LobbiesPage() {
                   Admin code: <strong>{lobby.adminCode || "—"}</strong>
                 </Typography>
                 <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap" }}>
-                  <Button size="small" onClick={() => onRegenCodes(lobby.id)}>
-                    Regen codes
+                  <Button size="small" onClick={() => onRegenCodes(lobby.id, "admin")}>
+                    Regen admin code
+                  </Button>
+                  <Button size="small" onClick={() => onRegenCodes(lobby.id, "players")}>
+                    Regen player codes
                   </Button>
                   <Button size="small" onClick={() => onLock(lobby.id)}>
                     Lock
@@ -193,13 +209,20 @@ export default function LobbiesPage() {
                         bgcolor: colors.elevated,
                         border: `1px solid ${colors.border}`,
                         display: "flex",
+                        alignItems: "center",
                         justifyContent: "space-between",
+                        gap: 1,
                       }}
                     >
                       <Typography variant="body2">{a.Team?.name}</Typography>
-                      <Typography variant="caption" color="secondary.main">
-                        {a.playerCode}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography variant="caption" color="secondary.main">
+                          {a.playerCode}
+                        </Typography>
+                        <Button size="small" color="error" onClick={() => onRemoveTeam(lobby, a)}>
+                          Remove
+                        </Button>
+                      </Stack>
                     </Box>
                   ))}
                   {(lobby.assignments || []).length === 0 && (

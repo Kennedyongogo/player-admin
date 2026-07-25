@@ -11,13 +11,14 @@ async function request(path, options = {}) {
   const token = localStorage.getItem(TOKEN_KEY);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs || 12000);
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
 
   try {
     const res = await fetch(`${base}${path}`, {
       ...options,
       signal: controller.signal,
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         Accept: "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
@@ -71,6 +72,10 @@ export async function updateUser(id, payload) {
   return request(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
+export async function createUser(payload) {
+  return request("/api/admin/users", { method: "POST", body: JSON.stringify(payload) });
+}
+
 export async function getReports() {
   return request("/api/admin/reports");
 }
@@ -80,6 +85,10 @@ export async function broadcastNotification(payload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getAuditLogs(params = {}) {
+  return request(`/api/admin/audit-logs?${qs(params)}`);
 }
 
 export async function getTournaments(params = {}) {
@@ -143,8 +152,11 @@ export async function removeLobbyTeam(lobbyId, teamId) {
   return request(`/api/lobbies/${lobbyId}/teams/${teamId}`, { method: "DELETE" });
 }
 
-export async function regenerateLobbyCodes(lobbyId) {
-  return request(`/api/lobbies/${lobbyId}/regenerate-codes`, { method: "POST" });
+export async function regenerateLobbyCodes(lobbyId, scope = "all") {
+  return request(`/api/lobbies/${lobbyId}/regenerate-codes`, {
+    method: "POST",
+    body: JSON.stringify({ scope }),
+  });
 }
 
 export async function lockLobby(lobbyId) {
@@ -167,8 +179,19 @@ export async function submitScore(payload) {
   return request("/api/scores", { method: "POST", body: JSON.stringify(payload) });
 }
 
-export async function syncOverstat(tournamentId) {
-  return request(`/api/scores/sync/${tournamentId}`, { method: "POST" });
+export async function updateScore(id, payload) {
+  return request(`/api/scores/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export async function deleteScore(id) {
+  return request(`/api/scores/${id}`, { method: "DELETE" });
+}
+
+export async function syncOverstat(tournamentId, standings) {
+  return request(`/api/scores/sync/${tournamentId}`, {
+    method: "POST",
+    body: JSON.stringify(standings ? { standings } : {}),
+  });
 }
 
 export async function getLeaderboards(params = {}) {
@@ -177,6 +200,28 @@ export async function getLeaderboards(params = {}) {
 
 export async function upsertLeaderboardEntry(payload) {
   return request("/api/leaderboards/entries", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function deleteLeaderboardEntry(id) {
+  return request(`/api/leaderboards/entries/${id}`, { method: "DELETE" });
+}
+
+export async function recalculateWeekly() {
+  return request("/api/leaderboards/recalculate-weekly", { method: "POST" });
+}
+
+export async function rebuildLive(tournamentId) {
+  return request("/api/leaderboards/rebuild-live", {
+    method: "POST",
+    body: JSON.stringify({ tournamentId }),
+  });
+}
+
+export async function archiveHistorical(tournamentId) {
+  return request("/api/leaderboards/archive-historical", {
+    method: "POST",
+    body: JSON.stringify({ tournamentId }),
+  });
 }
 
 export async function getSponsors(params = {}) {
@@ -191,6 +236,10 @@ export async function updateSponsor(id, payload) {
   return request(`/api/sponsors/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
+export async function deleteSponsor(id) {
+  return request(`/api/sponsors/${id}`, { method: "DELETE" });
+}
+
 export async function getNews(params = {}) {
   return request(`/api/news?${qs(params)}`);
 }
@@ -203,6 +252,10 @@ export async function updateNews(id, payload) {
   return request(`/api/news/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 }
 
+export async function deleteNews(id) {
+  return request(`/api/news/${id}`, { method: "DELETE" });
+}
+
 export async function getStreams(params = {}) {
   return request(`/api/streams?${qs(params)}`);
 }
@@ -213,6 +266,70 @@ export async function createStream(payload) {
 
 export async function updateStream(id, payload) {
   return request(`/api/streams/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export async function deleteStream(id) {
+  return request(`/api/streams/${id}`, { method: "DELETE" });
+}
+
+export async function getBrackets(params = {}) {
+  return request(`/api/brackets?${qs(params)}`);
+}
+
+export async function getBracket(id) {
+  return request(`/api/brackets/${id}`);
+}
+
+export async function createBracket(payload) {
+  return request("/api/brackets", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function updateBracket(id, payload) {
+  return request(`/api/brackets/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+}
+
+export async function setBracketMatch(id, payload) {
+  return request(`/api/brackets/${id}/matches`, { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function deleteBracket(id) {
+  return request(`/api/brackets/${id}`, { method: "DELETE" });
+}
+
+export async function getAnnouncements(params = {}) {
+  return request(`/api/announcements?${qs(params)}`);
+}
+
+export async function createAnnouncement(payload) {
+  return request("/api/announcements", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export async function publishAnnouncement(id) {
+  return request(`/api/announcements/${id}/publish`, { method: "POST" });
+}
+
+export async function deleteAnnouncement(id) {
+  return request(`/api/announcements/${id}`, { method: "DELETE" });
+}
+
+const UPLOAD_KINDS = ["logo", "banner", "avatar", "cover"];
+
+export async function uploadFile(kind, file) {
+  if (!UPLOAD_KINDS.includes(kind)) throw new Error(`Invalid upload kind: ${kind}`);
+  const formData = new FormData();
+  formData.append("file", file);
+  return request(`/api/uploads/${kind}`, { method: "POST", body: formData });
+}
+
+export async function getConfig() {
+  return request("/api/config");
+}
+
+export async function upsertConfig(key, value) {
+  return request(`/api/config/${encodeURIComponent(key)}`, {
+    method: "PUT",
+    body: JSON.stringify({ value }),
+  });
 }
 
 export function saveSession({ token, user }) {

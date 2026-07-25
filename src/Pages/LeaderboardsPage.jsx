@@ -15,15 +15,24 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { getLeaderboards, getTeams, getTournaments, upsertLeaderboardEntry } from "../api";
+import {
+  deleteLeaderboardEntry,
+  getLeaderboards,
+  getTeams,
+  getTournaments,
+  rebuildLive,
+  recalculateWeekly,
+  upsertLeaderboardEntry,
+} from "../api";
 import { colors } from "../theme";
-import { showError, showSuccess } from "../utils/swal";
+import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 export default function LeaderboardsPage() {
   const [type, setType] = useState("weekly");
   const [entries, setEntries] = useState([]);
   const [teams, setTeams] = useState([]);
   const [tournaments, setTournaments] = useState([]);
+  const [rebuildTournamentId, setRebuildTournamentId] = useState("");
   const [form, setForm] = useState({
     teamId: "",
     tournamentId: "",
@@ -46,7 +55,9 @@ export default function LeaderboardsPage() {
   useEffect(() => {
     Promise.all([getTeams({ limit: 100 }), getTournaments({ limit: 100 })]).then(([t, tour]) => {
       setTeams(t.data?.teams || []);
-      setTournaments(tour.data?.tournaments || []);
+      const list = tour.data?.tournaments || [];
+      setTournaments(list);
+      if (list[0]) setRebuildTournamentId(list[0].id);
     });
   }, []);
 
@@ -73,6 +84,42 @@ export default function LeaderboardsPage() {
     }
   };
 
+  const onRecalculateWeekly = async () => {
+    try {
+      const r = await recalculateWeekly();
+      showSuccess("Weekly rankings recalculated", r.message);
+      load();
+    } catch (err) {
+      showError("Recalculate failed", err.message);
+    }
+  };
+
+  const onRebuildLive = async () => {
+    if (!rebuildTournamentId) {
+      showError("Tournament required", "Select a tournament to rebuild");
+      return;
+    }
+    try {
+      const r = await rebuildLive(rebuildTournamentId);
+      showSuccess("Live leaderboard rebuilt", `${r.data?.count ?? 0} entries`);
+      load();
+    } catch (err) {
+      showError("Rebuild failed", err.message);
+    }
+  };
+
+  const onDeleteEntry = async (e) => {
+    const ok = await showConfirm("Delete entry?", `Remove #${e.rank} ${e.Team?.name || ""} from the leaderboard?`, "Delete");
+    if (!ok) return;
+    try {
+      await deleteLeaderboardEntry(e.id);
+      showSuccess("Entry deleted");
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" sx={{ mb: 0.5 }}>
@@ -82,15 +129,46 @@ export default function LeaderboardsPage() {
         Manage ranking entries shown on the public portal
       </Typography>
 
-      <FormControl sx={{ mb: 2, minWidth: 180 }}>
-        <InputLabel>Type</InputLabel>
-        <Select label="Type" value={type} onChange={(e) => setType(e.target.value)}>
-          <MenuItem value="weekly">Weekly</MenuItem>
-          <MenuItem value="regional">Regional</MenuItem>
-          <MenuItem value="tournament">Tournament</MenuItem>
-          <MenuItem value="live">Live</MenuItem>
-        </Select>
-      </FormControl>
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 2 }} alignItems={{ sm: "center" }}>
+        <FormControl sx={{ minWidth: 180 }}>
+          <InputLabel>Type</InputLabel>
+          <Select label="Type" value={type} onChange={(e) => setType(e.target.value)}>
+            <MenuItem value="weekly">Weekly</MenuItem>
+            <MenuItem value="regional">Regional</MenuItem>
+            <MenuItem value="tournament">Tournament</MenuItem>
+            <MenuItem value="live">Live</MenuItem>
+            <MenuItem value="historical">Historical</MenuItem>
+          </Select>
+        </FormControl>
+        <Button variant="outlined" onClick={onRecalculateWeekly}>
+          Recalculate weekly
+        </Button>
+      </Stack>
+
+      <Box sx={{ p: 2, mb: 3, borderRadius: 3, border: `1px solid ${colors.border}`, bgcolor: colors.surface }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Rebuild live leaderboard
+        </Typography>
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+          <FormControl sx={{ minWidth: 220 }}>
+            <InputLabel>Tournament</InputLabel>
+            <Select
+              label="Tournament"
+              value={rebuildTournamentId}
+              onChange={(e) => setRebuildTournamentId(e.target.value)}
+            >
+              {tournaments.map((t) => (
+                <MenuItem key={t.id} value={t.id}>
+                  {t.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button variant="contained" onClick={onRebuildLive}>
+            Rebuild live
+          </Button>
+        </Stack>
+      </Box>
 
       <Box sx={{ p: 2, mb: 3, borderRadius: 3, border: `1px solid ${colors.border}`, bgcolor: colors.surface }}>
         <Typography variant="h6" sx={{ mb: 2 }}>
@@ -148,6 +226,7 @@ export default function LeaderboardsPage() {
               <TableCell>Placement</TableCell>
               <TableCell>Total</TableCell>
               <TableCell>Avg</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -159,6 +238,11 @@ export default function LeaderboardsPage() {
                 <TableCell>{e.placementPoints}</TableCell>
                 <TableCell>{e.totalPoints}</TableCell>
                 <TableCell>{e.averagePoints ?? "—"}</TableCell>
+                <TableCell align="right">
+                  <Button size="small" color="error" onClick={() => onDeleteEntry(e)}>
+                    Delete
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

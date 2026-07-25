@@ -28,6 +28,7 @@ import ArticleIcon from "@mui/icons-material/ArticleOutlined";
 import LiveTvIcon from "@mui/icons-material/LiveTvOutlined";
 import AssessmentIcon from "@mui/icons-material/AssessmentOutlined";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
+import AccountTreeIcon from "@mui/icons-material/AccountTreeOutlined";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -36,25 +37,30 @@ import BrandLogo from "./BrandLogo";
 
 const WIDTH = 268;
 
+const ALL_ROLES = ["superadmin", "tournament_admin", "host"];
+const STAFF_ONLY = ["superadmin", "tournament_admin"];
+
 const NAV = [
-  { to: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
-  { to: "/tournaments", label: "Tournaments", icon: <EmojiEventsIcon /> },
-  { to: "/registrations", label: "Registrations", icon: <HowToRegIcon /> },
-  { to: "/lobbies", label: "Lobbies", icon: <MeetingRoomIcon /> },
-  { to: "/scores", label: "Live Scores", icon: <ScoreboardIcon /> },
-  { to: "/leaderboards", label: "Leaderboards", icon: <LeaderboardIcon /> },
-  { to: "/teams", label: "Teams", icon: <GroupsIcon /> },
-  { to: "/users", label: "Users", icon: <PeopleIcon /> },
-  { to: "/sponsors", label: "Sponsors", icon: <CampaignIcon /> },
-  { to: "/news", label: "News", icon: <ArticleIcon /> },
-  { to: "/streams", label: "Streams", icon: <LiveTvIcon /> },
-  { to: "/reports", label: "Reports", icon: <AssessmentIcon /> },
-  { to: "/settings", label: "Settings", icon: <SettingsIcon /> },
+  { to: "/dashboard", label: "Dashboard", icon: <DashboardIcon />, roles: ALL_ROLES },
+  { to: "/tournaments", label: "Tournaments", icon: <EmojiEventsIcon />, roles: STAFF_ONLY },
+  { to: "/registrations", label: "Registrations", icon: <HowToRegIcon />, roles: ALL_ROLES },
+  { to: "/lobbies", label: "Lobbies", icon: <MeetingRoomIcon />, roles: ALL_ROLES },
+  { to: "/scores", label: "Live Scores", icon: <ScoreboardIcon />, roles: ALL_ROLES },
+  { to: "/leaderboards", label: "Leaderboards", icon: <LeaderboardIcon />, roles: STAFF_ONLY },
+  { to: "/brackets", label: "Brackets", icon: <AccountTreeIcon />, roles: STAFF_ONLY },
+  { to: "/teams", label: "Teams", icon: <GroupsIcon />, roles: STAFF_ONLY },
+  { to: "/users", label: "Users", icon: <PeopleIcon />, roles: STAFF_ONLY },
+  { to: "/sponsors", label: "Sponsors", icon: <CampaignIcon />, roles: STAFF_ONLY },
+  { to: "/news", label: "News", icon: <ArticleIcon />, roles: STAFF_ONLY },
+  { to: "/streams", label: "Streams", icon: <LiveTvIcon />, roles: STAFF_ONLY },
+  { to: "/reports", label: "Reports", icon: <AssessmentIcon />, roles: STAFF_ONLY },
+  { to: "/settings", label: "Settings", icon: <SettingsIcon />, roles: STAFF_ONLY },
 ];
 
 function SideNav({ onNavigate }) {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const nav = NAV.filter((item) => item.roles.includes(user?.role));
 
   return (
     <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: colors.surface }}>
@@ -66,7 +72,7 @@ function SideNav({ onNavigate }) {
       </Box>
       <Divider sx={{ borderColor: colors.border }} />
       <List sx={{ flex: 1, px: 1, py: 1, overflow: "auto" }}>
-        {NAV.map((item) => (
+        {nav.map((item) => (
           <ListItemButton
             key={item.to}
             component={NavLink}

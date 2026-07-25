@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import {
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
@@ -15,16 +19,22 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { getUsers, updateUser } from "../api";
+import { createUser, getUsers, updateUser } from "../api";
+import { useAuth } from "../context/AuthContext";
 import { colors } from "../theme";
 import { showConfirm, showError, showSuccess } from "../utils/swal";
 
 const ROLES = ["player", "host", "tournament_admin", "superadmin"];
+const EMPTY_FORM = { email: "", username: "", password: "", role: "player" };
 
 export default function UsersPage() {
+  const { isSuperAdmin, isTournamentAdmin } = useAuth();
+  const canCreate = isSuperAdmin || isTournamentAdmin;
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
 
   const load = () =>
     getUsers({ search, role, limit: 100 })
@@ -34,6 +44,26 @@ export default function UsersPage() {
   useEffect(() => {
     load();
   }, [search, role]);
+
+  const onCreate = async () => {
+    if (!form.email.trim() || !form.username.trim() || !form.password.trim()) {
+      showError("Missing fields", "Email, username, and password are required");
+      return;
+    }
+    if (form.role === "superadmin" && !isSuperAdmin) {
+      showError("Not allowed", "Only superadmin can create superadmin accounts");
+      return;
+    }
+    try {
+      await createUser(form);
+      showSuccess("User created");
+      setOpen(false);
+      setForm(EMPTY_FORM);
+      load();
+    } catch (err) {
+      showError(err.message);
+    }
+  };
 
   const setUserRole = async (id, nextRole) => {
     try {
@@ -61,9 +91,14 @@ export default function UsersPage() {
 
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 0.5 }}>
-        Users
-      </Typography>
+      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" sx={{ mb: 0.5 }} spacing={2}>
+        <Typography variant="h4">Users</Typography>
+        {canCreate && (
+          <Button variant="contained" onClick={() => setOpen(true)}>
+            + Create user
+          </Button>
+        )}
+      </Stack>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
         Manage roles and account status
       </Typography>
@@ -117,6 +152,50 @@ export default function UsersPage() {
           </TableBody>
         </Table>
       </Box>
+
+      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Create user</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Email"
+              type="email"
+              fullWidth
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
+            <TextField
+              label="Username"
+              fullWidth
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+            />
+            <TextField
+              label="Password"
+              type="password"
+              fullWidth
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Role</InputLabel>
+              <Select label="Role" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+                {ROLES.filter((r) => r !== "superadmin" || isSuperAdmin).map((r) => (
+                  <MenuItem key={r} value={r}>
+                    {r}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={onCreate}>
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

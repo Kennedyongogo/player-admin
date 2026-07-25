@@ -15,6 +15,7 @@ import UsersPage from "./Pages/UsersPage";
 import SponsorsPage from "./Pages/SponsorsPage";
 import NewsPage from "./Pages/NewsPage";
 import StreamsPage from "./Pages/StreamsPage";
+import BracketsPage from "./Pages/BracketsPage";
 import ReportsPage from "./Pages/ReportsPage";
 import SettingsPage from "./Pages/SettingsPage";
 
@@ -33,6 +34,13 @@ function RequireAuth({ children }) {
   return children;
 }
 
+function RequireStaff({ children }) {
+  const { isStaff, booting } = useAuth();
+  if (booting) return <Boot />;
+  if (!isStaff) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { booting } = useAuth();
   if (booting) return <Boot />;
@@ -48,18 +56,19 @@ function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/tournaments" element={<TournamentsPage />} />
+        <Route path="/tournaments" element={<RequireStaff><TournamentsPage /></RequireStaff>} />
         <Route path="/registrations" element={<RegistrationsPage />} />
         <Route path="/lobbies" element={<LobbiesPage />} />
         <Route path="/scores" element={<ScoresPage />} />
-        <Route path="/leaderboards" element={<LeaderboardsPage />} />
-        <Route path="/teams" element={<TeamsPage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="/sponsors" element={<SponsorsPage />} />
-        <Route path="/news" element={<NewsPage />} />
-        <Route path="/streams" element={<StreamsPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/leaderboards" element={<RequireStaff><LeaderboardsPage /></RequireStaff>} />
+        <Route path="/brackets" element={<RequireStaff><BracketsPage /></RequireStaff>} />
+        <Route path="/teams" element={<RequireStaff><TeamsPage /></RequireStaff>} />
+        <Route path="/users" element={<RequireStaff><UsersPage /></RequireStaff>} />
+        <Route path="/sponsors" element={<RequireStaff><SponsorsPage /></RequireStaff>} />
+        <Route path="/news" element={<RequireStaff><NewsPage /></RequireStaff>} />
+        <Route path="/streams" element={<RequireStaff><StreamsPage /></RequireStaff>} />
+        <Route path="/reports" element={<RequireStaff><ReportsPage /></RequireStaff>} />
+        <Route path="/settings" element={<RequireStaff><SettingsPage /></RequireStaff>} />
       </Route>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

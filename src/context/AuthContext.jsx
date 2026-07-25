@@ -49,6 +49,9 @@ export function AuthProvider({ children }) {
       logoutUser,
       isAuthenticated: !!user,
       isSuperAdmin: user?.role === "superadmin",
+      isTournamentAdmin: user?.role === "tournament_admin",
+      isHost: user?.role === "host",
+      isStaff: ["superadmin", "tournament_admin"].includes(user?.role),
     }),
     [user, booting, loginUser, logoutUser]
   );
